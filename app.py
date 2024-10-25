@@ -9,7 +9,7 @@ import os
 
 app = Flask(__name__)
 
-alpha = 0.5  # Transparency of the overlay
+alpha = 0.5  # Transparency of the overlay (default value)
 # Directory for uploaded slides
 UPLOAD_FOLDER = "uploaded_slides"
 
@@ -84,7 +84,7 @@ def get_tile(level, x, y):
         region = np.array(region, dtype=np.uint8)
 
         # Apply the overlay using the heatmap image
-        overlay_image = get_heatmap_overlay(region, heatmap_image)
+        overlay_image = get_heatmap_overlay(region, heatmap_image, alpha=alpha)
 
         # Save the image to a BytesIO object to serve it
         img_io = io.BytesIO()
@@ -98,15 +98,18 @@ def get_tile(level, x, y):
 
 @app.route('/change_slide/<slide_name>', methods=['POST'])
 def change_slide(slide_name):
-    global slide, heatmap_tile_maker
+    global slide, heatmap_tile_maker, alpha
     slide_path = get_slide_path(slide_name)
     if os.path.exists(slide_path):
         slide = openslide.OpenSlide(slide_path)
-        
+
         # Reinitialize the heatmap tile maker for the new slide
         heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=256)
         heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
         
+        # Update alpha value if provided in the request
+        alpha = request.json.get("alpha", 0.5)
+
         return jsonify(success=True)
     return jsonify(success=False), 400
 

@@ -2,7 +2,6 @@ import os
 import requests
 import streamlit as st
 
-
 # Directory to store uploaded slides
 UPLOAD_FOLDER = "uploaded_slides"
 if not os.path.exists(UPLOAD_FOLDER):
@@ -28,13 +27,17 @@ if uploaded_file:
 slide_options = get_slides()
 selected_slide = st.sidebar.selectbox("Select a slide", slide_options)
 
-# Send request to Flask server to change the slide
-if st.sidebar.button("Load Slide"):
-    response = requests.post(f"http://127.0.0.1:5000/change_slide/{selected_slide}")
+# Slider to adjust alpha value
+alpha = st.sidebar.slider("Overlay Transparency (Alpha)", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+
+# Send alpha value to the server
+if selected_slide:
+    st.session_state.alpha = alpha
+    response = requests.post(f"http://127.0.0.1:5000/change_slide/{selected_slide}", json={"alpha": alpha})
     if response.ok:
-        st.success(f"Successfully changed to {selected_slide}")
+        st.sidebar.success(f"Successfully changed to {selected_slide} with alpha={alpha}")
     else:
-        st.error(f"Failed to change slide to {selected_slide}")
+        st.sidebar.error(f"Failed to change slide to {selected_slide}")
 
 st.write("Use the OpenSeadragon viewer below to interact with the selected slide.")
 st.markdown(f"""
