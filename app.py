@@ -42,8 +42,9 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """
 
     # print the dimensions of the region and heatmap image
-    print(region.shape, heatmap_image.shape)
-    
+    print(f"Region shape: {region.shape}")
+    print(f"Heatmap image size: {heatmap_image.size}")
+
     # Check if the input is already a NumPy array; otherwise, convert it
     if isinstance(region, Image.Image):
         region = np.array(region.convert("RGB"))[:, :, ::-1]  # Convert PIL to NumPy and RGB to BGR
