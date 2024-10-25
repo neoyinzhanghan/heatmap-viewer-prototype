@@ -39,20 +39,20 @@ def index():
         <body>
             <div id="openseadragon1" style="width: 800px; height: 600px;"></div>
             <script type="text/javascript">
-                var viewer = OpenSeadragon({
+                var viewer = OpenSeadragon({{
                     id: "openseadragon1",
                     prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/images/",
-                    tileSources: {
+                    tileSources: {{
                         height: {height_value},
                         width: {width_value},
                         tileSize: 256,
                         minLevel: 0,
                         maxLevel: {max_level},
-                        getTileUrl: function(level, x, y) {
+                        getTileUrl: function(level, x, y) {{
                             return "/tile/" + level + "/" + x + "/" + y + "/";
-                        }
-                    }
-                });
+                        }}
+                    }}
+                }});
             </script>
         </body>
     </html>
