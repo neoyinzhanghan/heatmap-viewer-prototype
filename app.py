@@ -91,11 +91,32 @@ def index():
     <html>
         <head>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/openseadragon.min.js"></script>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                }
+                .container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 20px;
+                }
+                #openseadragon1 {
+                    width: 800px;
+                    height: 600px;
+                    margin-bottom: 20px;
+                }
+                #alpha-slider {
+                    width: 800px;
+                }
+            </style>
         </head>
         <body>
-            <div id="openseadragon1" style="width: 800px; height: 600px;"></div>
-            <label for="alpha-slider">Adjust Overlay Transparency:</label>
-            <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5" oninput="updateAlpha(this.value)">
+            <div class="container">
+                <div id="openseadragon1"></div>
+                <label for="alpha-slider">Adjust Overlay Transparency:</label>
+                <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5" oninput="updateAlpha(this.value)">
+            </div>
             <script type="text/javascript">
                 var viewer = OpenSeadragon({
                     id: "openseadragon1",
