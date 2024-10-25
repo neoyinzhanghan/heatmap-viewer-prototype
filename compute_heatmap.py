@@ -6,8 +6,7 @@ from tqdm import tqdm
 from dataset import LowMagRegionDataset
 from torch.utils.data import DataLoader
 from BMARegionClfManager import load_clf_model, predict_batch
-from BMAassumptions import region_clf_ckpt_path, high_mag_region_clf_ckpt_path, high_mag_region_clf_threshold
-
+from BMAassumptions import region_clf_ckpt_path
 
 batch_size = 256
 num_workers = 32
@@ -150,6 +149,17 @@ class HeatMapTileMaker:
         except IndexError:
             return float(0)
         
+    def get_gaussian_heatmap_values(self, x, y):
+        """ 
+        Get the heatmap values at a specific level and location using a gaussian kernel centered at the center of the slide, with sigma = 1/3 of the slide height.
+        """
+        slide_width, slide_height = self.slide.dimensions
+        center_x = slide_width // 2
+        center_y = slide_height // 2
+        sigma = slide_height / 3
+        heatmap_values = np.exp(-((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma ** 2))
+        return heatmap_values
+        
     def get_heatmap_image(self, level, x, y):
         """
         Get the heatmap overlay for a specific level and location.
@@ -170,6 +180,7 @@ class HeatMapTileMaker:
 
         for i in range(2**(openslide_level)):
             for j in range(2**(openslide_level)):
-                heatmap_overlay_score[i*heatmap_grid_size:(i+1)*heatmap_grid_size, j*heatmap_grid_size:(j+1)*heatmap_grid_size] = self.get_heatmap_values(self.slide.level_count - 1, x*2**(openslide_level) + i, y*2**(openslide_level) + j)
+                heatmap_overlay_score[i*heatmap_grid_size:(i+1)*heatmap_grid_size, j*heatmap_grid_size:(j+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*2**(openslide_level) + i, y*2**(openslide_level) + j)
+                # self.get_heatmap_values(self.slide.level_count - 1, x*2**(openslide_level) + i, y*2**(openslide_level) + j)
         
         return generate_red_green_heatmap(heatmap_overlay_score)
