@@ -2,18 +2,19 @@ from flask import Flask, send_file, request, jsonify, render_template_string
 import openslide
 from PIL import Image
 import io
+import os
 
 app = Flask(__name__)
 
-# A list of slide paths
-slides = {
-    "Slide 1": "/media/hdd3/neo/test_slide_1.ndpi",
-    "Slide 2": "/media/hdd3/neo/test_slide_2.ndpi",
-    "Slide 3": "/media/hdd3/neo/test_slide_3.ndpi"
-}
+# Directory for uploaded slides
+UPLOAD_FOLDER = "uploaded_slides"
 
-# Set an initial slide
-current_slide = slides["Slide 1"]
+# Helper function to get the full path of a slide
+def get_slide_path(slide_name):
+    return os.path.join(UPLOAD_FOLDER, slide_name)
+
+# Set a default slide
+current_slide = get_slide_path("default_slide.ndpi")  # Change to an actual default slide path if needed
 slide = openslide.OpenSlide(current_slide)
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
@@ -36,8 +37,9 @@ def get_tile(level, x, y):
 @app.route('/change_slide/<slide_name>', methods=['POST'])
 def change_slide(slide_name):
     global slide
-    if slide_name in slides:
-        slide = openslide.OpenSlide(slides[slide_name])
+    slide_path = get_slide_path(slide_name)
+    if os.path.exists(slide_path):
+        slide = openslide.OpenSlide(slide_path)
         return jsonify(success=True)
     return jsonify(success=False), 400
 

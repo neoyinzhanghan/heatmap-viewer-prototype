@@ -1,11 +1,30 @@
 import streamlit as st
 import requests
+import os
 
-# List of slide names (you can make this dynamic by reading from a directory or database)
-slide_options = ["Slide 1", "Slide 2", "Slide 3"]
+# Directory to store uploaded slides
+UPLOAD_FOLDER = "uploaded_slides"
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+# List existing slides
+def get_slides():
+    return [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".ndpi")]
 
 # Streamlit sidebar to select slides
 st.sidebar.title("Slide Gallery")
+
+# Upload slide feature
+uploaded_file = st.sidebar.file_uploader("Upload a slide (.ndpi)", type="ndpi")
+if uploaded_file:
+    # Save the uploaded file
+    file_path = os.path.join(UPLOAD_FOLDER, uploaded_file.name)
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    st.sidebar.success(f"Successfully uploaded {uploaded_file.name}")
+
+# Display available slides for selection
+slide_options = get_slides()
 selected_slide = st.sidebar.selectbox("Select a slide", slide_options)
 
 # Send request to Flask server to change the slide
