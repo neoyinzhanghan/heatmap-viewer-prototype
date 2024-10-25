@@ -107,6 +107,6 @@ class HeatMapTileMaker:
         """
 
         try:
-            float(self.dz_heatmap_dict[level][x, y]) # if index out of bounds, return 0
+            return float(self.dz_heatmap_dict[level][x, y]) # if index out of bounds, return 0
         except IndexError:
             return 0
