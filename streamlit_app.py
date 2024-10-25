@@ -43,8 +43,7 @@ if slide_uploaded:
     
     # Use Streamlit container and a responsive iframe to fit the entire viewer
     viewer_height = 800  # Adjust height dynamically based on your needs
-    viewer_width = st.columns(1)[0].width  # Full container width
     
     st.markdown(f"""
-        <iframe src="http://127.0.0.1:5000" width="100%" height="{viewer_height}px" style="border:none;"></iframe>
+        <iframe src="http://127.0.0.1:5000" width="100%" height="{viewer_height}px" style="border:none; display:block; margin:0 auto;"></iframe>
     """, unsafe_allow_html=True)
