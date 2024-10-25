@@ -20,7 +20,7 @@ def get_tile(level, x, y):
     # Read the region and return it as an image
     try:
 
-        openslide_level = 18 - level
+        openslide_level = slide.level_count - 1 - level
         region = slide.read_region((tile_x, tile_y), openslide_level, (tile_size, tile_size)).convert("RGB")
         img_io = io.BytesIO()
         region.save(img_io, format='JPEG', quality=90)
