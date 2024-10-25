@@ -1,4 +1,4 @@
-from flask import Flask, send_file, request, jsonify, render_template_string
+from flask import Flask, send_file, request, jsonify, render_template_string, make_response
 from compute_heatmap import HeatMapTileMaker
 from utils import smooth_function
 from PIL import Image
@@ -53,7 +53,13 @@ def get_tile(level, x, y):
         img_io = io.BytesIO()
         overlay_image.save(img_io, format='JPEG', quality=90)
         img_io.seek(0)
-        return send_file(img_io, mimetype='image/jpeg')
+        response = make_response(send_file(img_io, mimetype='image/jpeg'))
+        
+        # Disable caching at the HTTP level
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         print(f"Error serving tile: {e}")
         return "Tile not found", 404
@@ -124,21 +130,34 @@ def index():
                 <button id="apply-button" onclick="applyNewTransparency()">Apply New Transparency</button>
             </div>
             <script type="text/javascript">
-                var viewer = OpenSeadragon({
-                    id: "openseadragon1",
-                    prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/images/",
-                    tileSources: {
-                        height: {{ height_value }},
-                        width: {{ width_value }},
-                        tileSize: 512,
-                        minLevel: 0,
-                        maxLevel: {{ max_level }},
-                        getTileUrl: function(level, x, y) {
-                            // Add a cache-busting parameter `v` to force fresh tiles to load
-                            return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
-                        }
+                var viewer;
+
+                function initializeViewer() {
+                    if (viewer) {
+                        viewer.destroy(); // Destroy the existing viewer instance to fully reset it
                     }
-                });
+
+                    viewer = OpenSeadragon({
+                        id: "openseadragon1",
+                        prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/images/",
+                        tileSources: {
+                            height: {{ height_value }},
+                            width: {{ width_value }},
+                            tileSize: 512,
+                            minLevel: 0,
+                            maxLevel: {{ max_level }},
+                            getTileUrl: function(level, x, y) {
+                                // Add a cache-busting parameter `v` to force fresh tiles to load
+                                return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
+                            }
+                        },
+                        showNavigator: true,
+                        preserveViewport: true,
+                        immediateRender: true,
+                        useCanvas: true,
+                        tileCache: null // Disable OpenSeadragon's internal tile cache
+                    });
+                }
 
                 function applyNewTransparency() {
                     var alphaValue = document.getElementById("alpha-slider").value;
@@ -152,36 +171,14 @@ def index():
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Clear the tile cache and reload the viewer
-                            viewer.world.getItemAt(0).resetDimensions(); // Reset the image dimensions
-                            viewer.open({
-                                height: {{ height_value }},
-                                width: {{ width_value }},
-                                tileSize: 512,
-                                minLevel: 0,
-                                maxLevel: {{ max_level }},
-                                getTileUrl: function(level, x, y) {
-                                    // Add a cache-busting parameter `v` to force fresh tiles to load
-                                    return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
-                                }
-                            });
+                            // Re-initialize the viewer to apply the new transparency
+                            initializeViewer();
                         }
                     });
                 }
 
                 window.onload = function() {
-                    viewer.world.removeAll();
-                    viewer.open({
-                        height: {{ height_value }},
-                        width: {{ width_value }},
-                        tileSize: 512,
-                        minLevel: 0,
-                        maxLevel: {{ max_level }},
-                        getTileUrl: function(level, x, y) {
-                            // Add a cache-busting parameter `v` to force fresh tiles to load
-                            return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
-                        }
-                    });
+                    initializeViewer();
                 }
             </script>
         </body>
