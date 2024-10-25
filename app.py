@@ -27,40 +27,36 @@ slide = openslide.OpenSlide(current_slide)
 # Create an instance of HeatMapTileMaker and compute the heatmap once
 heatmap_tile_maker = HeatMapTileMaker(slide_path=current_slide, tile_size=256)
 heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
+
+
+
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """
     Overlays a heatmap image onto the original region.
 
     Parameters:
-    - region (numpy.ndarray): The original region image in RGB or BGR format.
-    - heatmap_image (PIL.Image.Image): The heatmap image to overlay.
+    - region (numpy.ndarray): The original region image in RGB format.
+    - heatmap_image (PIL.Image.Image): The heatmap image to overlay in RGB format.
     - alpha (float): The blending weight for the heatmap overlay (default is 0.5).
     
     Returns:
     - overlay_image (PIL.Image.Image): The resulting image with the overlay.
     """
 
-    # # Print the dimensions of the region and heatmap image
-    # print(f"Region shape: {region.shape}")
-    # print(f"Heatmap image size: {heatmap_image.size}")
+    # Convert the heatmap image from PIL to a NumPy array (assume it's in RGB)
+    heatmap_image = np.array(heatmap_image.convert("RGB"))  # Convert to NumPy array if needed
 
-    # Convert the heatmap image from PIL to a NumPy array
-    heatmap_image = np.array(heatmap_image.convert("L"))  # Convert to grayscale if not already
-
-    # Normalize the heatmap values to the range [0, 1]
-    heatmap_image = heatmap_image / 255.0
-
-    # Convert the normalized heatmap to a colormap with red to green (values 0 to 1 map to red to green)
-    heatmap_colormap = cv2.applyColorMap((heatmap_image * 255).astype(np.uint8), cv2.COLORMAP_JET)
-
-    # Check if the region is in RGB and convert to BGR for OpenCV if needed
-    if region.shape[2] == 3:
-        region_bgr = cv2.cvtColor(region, cv2.COLOR_RGB2BGR)
+    # Ensure that region is in RGB format and is a NumPy array
+    if region.shape[2] == 3:  # Ensure the region has three channels (RGB)
+        region_bgr = cv2.cvtColor(region, cv2.COLOR_RGB2BGR)  # Convert region to BGR for OpenCV
     else:
-        region_bgr = region  # Assume it's already in BGR
+        raise ValueError("Region image must be in RGB format with 3 channels")
 
-    # Blend the original region with the heatmap colormap (alpha blending)
-    overlay_image_np = cv2.addWeighted(region_bgr, 1 - alpha, heatmap_colormap, alpha, 0)
+    # Convert the heatmap image from RGB to BGR (as OpenCV works with BGR)
+    heatmap_bgr = cv2.cvtColor(heatmap_image, cv2.COLOR_RGB2BGR)
+
+    # Blend the original region with the heatmap image (alpha blending)
+    overlay_image_np = cv2.addWeighted(region_bgr, 1 - alpha, heatmap_bgr, alpha, 0)
 
     # Convert the result back to a PIL image in RGB format
     overlay_image = Image.fromarray(cv2.cvtColor(overlay_image_np, cv2.COLOR_BGR2RGB))
