@@ -14,7 +14,7 @@ selected_slide_name = st.sidebar.selectbox("Choose a slide", list(slide_options.
 slide_uploaded = False
 
 # Alpha slider for overlay transparency
-alpha = st.sidebar.slider("Overlay Transparency (Alpha)", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+alpha = st.sidebar.slider("Initial Overlay Transparency (Alpha)", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
 
 # Submit button to process the selected slide
 if st.sidebar.button("Submit Slide"):

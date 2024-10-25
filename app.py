@@ -144,7 +144,9 @@ def index():
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            viewer.world.removeAll();
+                            // Clear the tile cache and reload the viewer
+                            viewer.clearTiles();
+                            viewer.world.getItemAt(0).resetDimensions(); // Reset the image dimensions
                             viewer.open({
                                 height: {{ height_value }},
                                 width: {{ width_value }},
