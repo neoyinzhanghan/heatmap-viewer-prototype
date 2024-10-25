@@ -158,7 +158,7 @@ class HeatMapTileMaker:
         openslide_level = self.slide.level_count - 1 - level            
         heatmap_grid_size = 256 // 2 ** (openslide_level)
 
-        heatmap_overlay_score = np.zeros((heatmap_grid_size, heatmap_grid_size))
+        heatmap_overlay_score = np.zeros((256, 256))
 
         for i in range(2**(openslide_level)):
             for j in range(2**(openslide_level)):
