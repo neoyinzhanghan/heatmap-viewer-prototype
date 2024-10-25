@@ -32,6 +32,8 @@ class LowMagRegionDataset(Dataset):
         for x in range(self.slide_width // self.tile_size):
             for y in range(self.slide_height // self.tile_size):
                 level_3_coords.append((x, y))
+
+        return level_3_coords
     
     def __len__(self):
         return len(self.level_3_coords)
