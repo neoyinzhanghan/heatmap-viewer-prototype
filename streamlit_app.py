@@ -13,34 +13,32 @@ st.sidebar.title("Slide Selection")
 selected_slide_name = st.sidebar.selectbox("Choose a slide", list(slide_options.keys()))
 slide_uploaded = False
 
+# Alpha slider for overlay transparency
+alpha = st.sidebar.slider("Overlay Transparency (Alpha)", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+
 # Submit button to process the selected slide
 if st.sidebar.button("Submit Slide"):
     selected_slide_path = slide_options[selected_slide_name].split("/")[-1]
     
-    # Send the selected slide to the Flask server
+    # Send the selected slide and alpha value to the Flask server
     try:
-        response = requests.post(f"http://127.0.0.1:5000/change_slide/{selected_slide_path}")
-        if response.ok:
-            st.sidebar.success(f"Slide {selected_slide_name} is now loaded.")
-            slide_uploaded = True
+        # Send slide selection request
+        response_slide = requests.post(f"http://127.0.0.1:5000/change_slide/{selected_slide_path}")
+        if response_slide.ok:
+            # Send alpha value request
+            response_alpha = requests.post(f"http://127.0.0.1:5000/set_alpha", json={"alpha": alpha})
+            if response_alpha.ok:
+                st.sidebar.success(f"Slide {selected_slide_name} is now loaded with alpha {alpha}.")
+                slide_uploaded = True
+            else:
+                st.sidebar.error("Failed to set transparency. Server error.")
         else:
             st.sidebar.error(f"Failed to load slide {selected_slide_name}. Server error.")
     except requests.exceptions.RequestException as e:
         st.sidebar.error(f"Failed to connect to server: {e}")
 
-# Alpha slider
+# Display OpenSeadragon viewer if the slide is uploaded
 if slide_uploaded:
-    alpha = st.sidebar.slider("Overlay Transparency (Alpha)", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
-    st.session_state.alpha = alpha
-
-    # Send alpha value to the server whenever it changes
-    try:
-        response = requests.post(f"http://127.0.0.1:5000/set_alpha", json={"alpha": alpha})
-        if not response.ok:
-            st.error("Failed to update transparency setting.")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Failed to connect to server: {e}")
-
     st.write("Use the OpenSeadragon viewer below to interact with the selected slide.")
     st.markdown(f"""
         <iframe src="http://127.0.0.1:5000" width="100%" height="600px"></iframe>
