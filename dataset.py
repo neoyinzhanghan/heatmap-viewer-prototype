@@ -40,7 +40,7 @@ class LowMagRegionDataset(Dataset):
     
     def __getitem__(self, idx):
         x, y = self.level_0_coords[idx]
-        region = self.slide.read_region(location=(x, y), level=3, size=(self.tile_size_level_3, self.tile_size_level_3))
+        region = self.slide.read_region(location=(x * self.tile_size, y * self.tile_size), level=3, size=(self.tile_size_level_3, self.tile_size_level_3))
         region = region.convert("RGB")
         # region = torch.tensor(region).permute(2, 0, 1).float() / 255.0
         return region, (x, y)
