@@ -9,7 +9,7 @@ from BMARegionClfManager import load_clf_model, predict_batch
 from BMAassumptions import region_clf_ckpt_path, high_mag_region_clf_ckpt_path, high_mag_region_clf_threshold
 
 
-batch_size =512
+batch_size = 256
 num_workers = 32
 
 
@@ -142,7 +142,7 @@ class HeatMapTileMaker:
         except IndexError:
             return float(0)
         
-    def get_heatmap_overlay(self, level, x, y):
+    def get_heatmap_image(self, level, x, y):
         """
         Get the heatmap overlay for a specific level and location.
 
