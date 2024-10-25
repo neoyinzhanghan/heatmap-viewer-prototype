@@ -155,7 +155,7 @@ class HeatMapTileMaker:
         """
         slide_width, slide_height = self.slide.dimensions
         center_x = 2 * (slide_width // self.tile_size) // 3
-        center_y = 2 *(slide_height // self.tile_size) // 3
+        center_y = 1 *(slide_height // self.tile_size) // 3
         sigma = (slide_height // self.tile_size) / 3
         heatmap_values = np.exp(-((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma ** 2))
         return heatmap_values
