@@ -40,6 +40,11 @@ if st.sidebar.button("Submit Slide"):
 # Display OpenSeadragon viewer if the slide is uploaded
 if slide_uploaded:
     st.write("Use the OpenSeadragon viewer below to interact with the selected slide.")
+    
+    # Use Streamlit container and a responsive iframe to fit the entire viewer
+    viewer_height = 800  # Adjust height dynamically based on your needs
+    viewer_width = st.columns(1)[0].width  # Full container width
+    
     st.markdown(f"""
-        <iframe src="http://127.0.0.1:5000" width="100%" height="600px"></iframe>
+        <iframe src="http://127.0.0.1:5000" width="100%" height="{viewer_height}px" style="border:none;"></iframe>
     """, unsafe_allow_html=True)
