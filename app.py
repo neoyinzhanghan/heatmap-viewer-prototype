@@ -37,9 +37,15 @@ def get_tile(level, x, y):
         # Get the heatmap value for the given level, x, and y
         heatmap_value = heatmap_tile_maker.get_heatmap_values(level, x, y)
 
-        # Multiply each pixel value by the heatmap value
+        # Ensure the heatmap value is a float
+        if not isinstance(heatmap_value, (float, np.floating)):
+            raise ValueError("Heatmap value is not a float")
+
+        # Convert the region to a NumPy array and ensure it is of type float32
         region = np.array(region, dtype=np.float32) / 255.0  # Normalize the pixel values to [0, 1]
-        region *= heatmap_value  # Multiply by the heatmap value
+
+        # Multiply each pixel value by the heatmap value (between 0 and 1)
+        region *= heatmap_value  # Apply heatmap multiplier
         region = np.clip(region * 255.0, 0, 255).astype(np.uint8)  # Convert back to uint8 for image representation
 
         # Convert the modified region back to an image
@@ -53,6 +59,7 @@ def get_tile(level, x, y):
     except Exception as e:
         print(f"Error serving tile: {e}")
         return "Tile not found", 404
+
 
 @app.route('/change_slide/<slide_name>', methods=['POST'])
 def change_slide(slide_name):
