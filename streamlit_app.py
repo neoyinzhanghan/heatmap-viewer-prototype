@@ -1,6 +1,7 @@
-import streamlit as st
-import requests
 import os
+import requests
+import streamlit as st
+
 
 # Directory to store uploaded slides
 UPLOAD_FOLDER = "uploaded_slides"

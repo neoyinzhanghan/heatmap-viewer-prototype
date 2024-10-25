@@ -1,7 +1,9 @@
 from flask import Flask, send_file, request, jsonify, render_template_string
-import openslide
+from compute_heatmap import HeatMapTileMaker
 from PIL import Image
+import openslide
 import io
+import numpy as np
 import os
 
 app = Flask(__name__)
@@ -13,9 +15,13 @@ UPLOAD_FOLDER = "uploaded_slides"
 def get_slide_path(slide_name):
     return os.path.join(UPLOAD_FOLDER, slide_name)
 
-# Set a default slide
+# Set a default slide and initialize HeatMapTileMaker
 current_slide = get_slide_path("/media/hdd3/neo/default_slide.ndpi")  # Change to an actual default slide path if needed
 slide = openslide.OpenSlide(current_slide)
+
+# Create an instance of HeatMapTileMaker and compute the heatmap once
+heatmap_tile_maker = HeatMapTileMaker(slide_path=current_slide, tile_size=256)
+heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
 def get_tile(level, x, y):
@@ -25,9 +31,23 @@ def get_tile(level, x, y):
     tile_y = y * tile_size * (2 ** openslide_level)
 
     try:
+        # Read the region from the slide
         region = slide.read_region((tile_x, tile_y), openslide_level, (tile_size, tile_size)).convert("RGB")
+        
+        # Get the heatmap value for the given level, x, and y
+        heatmap_value = heatmap_tile_maker.get_heatmap_values(level, x, y)
+
+        # Multiply each pixel value by the heatmap value
+        region = np.array(region, dtype=np.float32) / 255.0  # Normalize the pixel values to [0, 1]
+        region *= heatmap_value  # Multiply by the heatmap value
+        region = np.clip(region * 255.0, 0, 255).astype(np.uint8)  # Convert back to uint8 for image representation
+
+        # Convert the modified region back to an image
+        region_image = Image.fromarray(region)
+
+        # Save the image to a BytesIO object to serve it
         img_io = io.BytesIO()
-        region.save(img_io, format='JPEG', quality=90)
+        region_image.save(img_io, format='JPEG', quality=90)
         img_io.seek(0)
         return send_file(img_io, mimetype='image/jpeg')
     except Exception as e:
@@ -36,10 +56,15 @@ def get_tile(level, x, y):
 
 @app.route('/change_slide/<slide_name>', methods=['POST'])
 def change_slide(slide_name):
-    global slide
+    global slide, heatmap_tile_maker
     slide_path = get_slide_path(slide_name)
     if os.path.exists(slide_path):
         slide = openslide.OpenSlide(slide_path)
+        
+        # Reinitialize the heatmap tile maker for the new slide
+        heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=256)
+        heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
+        
         return jsonify(success=True)
     return jsonify(success=False), 400
 
