@@ -1,5 +1,6 @@
 from flask import Flask, send_file, request, jsonify, render_template_string
 from compute_heatmap import HeatMapTileMaker
+from utils import smooth_function
 from PIL import Image
 import openslide
 import io
@@ -36,7 +37,7 @@ def get_tile(level, x, y):
         
         # Get the heatmap value for the given level, x, and y
         heatmap_value = heatmap_tile_maker.get_heatmap_values(level, x, y)
-        heatmap_value = max(heatmap_value, 0.5)  # Ensure a minimum heatmap value of 0.5
+        heatmap_value = smooth_function(heatmap_value)  # Ensure a minimum heatmap value of 0.5
 
         print(f"Heatmap value: {heatmap_value}")
 
