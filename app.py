@@ -77,7 +77,7 @@ def change_slide(slide_name):
 @app.route('/set_alpha', methods=['POST'])
 def set_alpha():
     global alpha
-    alpha = request.json.get("alpha", 0.5)
+    alpha = float(request.json.get("alpha", 0.5))
     return jsonify(success=True)
 
 @app.route('/')
@@ -94,6 +94,8 @@ def index():
         </head>
         <body>
             <div id="openseadragon1" style="width: 800px; height: 600px;"></div>
+            <label for="alpha-slider">Adjust Overlay Transparency:</label>
+            <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5" oninput="updateAlpha(this.value)">
             <script type="text/javascript">
                 var viewer = OpenSeadragon({
                     id: "openseadragon1",
@@ -109,6 +111,32 @@ def index():
                         }
                     }
                 });
+
+                function updateAlpha(alphaValue) {
+                    fetch('/set_alpha', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({alpha: alphaValue}),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            viewer.world.removeAll();
+                            viewer.open({
+                                height: {{ height_value }},
+                                width: {{ width_value }},
+                                tileSize: 512,
+                                minLevel: 0,
+                                maxLevel: {{ max_level }},
+                                getTileUrl: function(level, x, y) {
+                                    return "/tile/" + level + "/" + x + "/" + y + "/";
+                                }
+                            });
+                        }
+                    });
+                }
 
                 window.onload = function() {
                     viewer.world.removeAll();
