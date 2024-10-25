@@ -28,6 +28,14 @@ def dyadic_average_downsample_heatmap(float_matrix):
     """
     # Get the dimensions of the input matrix
     height, width = float_matrix.shape
+
+    # remove the last row and column if the height or width is odd
+    if height % 2 != 0:
+        float_matrix = float_matrix[:-1]
+        height -= 1
+    if width % 2 != 0:
+        float_matrix = float_matrix[:, :-1]
+        width -= 1
     
     # Compute the new dimensions after downsampling
     new_height = height // 2
@@ -97,4 +105,8 @@ class HeatMapTileMaker:
         Returns:
         - float: The heatmap value at the specified location.
         """
-        return float(self.dz_heatmap_dict[level][x, y])
+
+        try:
+            float(self.dz_heatmap_dict[level][x, y]) # if index out of bounds, return 0
+        except IndexError:
+            return 0
