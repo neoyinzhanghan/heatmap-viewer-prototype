@@ -1,5 +1,6 @@
 import openslide
 import numpy as np
+from utils import smooth_function
 from PIL import Image
 from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
@@ -145,7 +146,7 @@ class HeatMapTileMaker:
         """
 
         try:
-            return float(self.dz_heatmap_dict[level][x, y]) # if index out of bounds, return 0
+            return smooth_function(float(self.dz_heatmap_dict[level][x, y])) # if index out of bounds, return 0
         except IndexError:
             return float(0)
         
@@ -180,7 +181,7 @@ class HeatMapTileMaker:
 
         for i in range(2**(openslide_level)):
             for j in range(2**(openslide_level)):
-                heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*(2**(openslide_level)) + i, y*(2**(openslide_level)) + j)
-                # self.get_heatmap_values(self.slide.level_count - 1, x*2**(openslide_level) + i, y*2**(openslide_level) + j)
+                # heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*(2**(openslide_level)) + i, y*(2**(openslide_level)) + j)
+                heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_heatmap_values(self.slide.level_count - 1, x*2**(openslide_level) + i, y*2**(openslide_level) + j)
         
         return generate_red_green_heatmap(heatmap_overlay_score)
