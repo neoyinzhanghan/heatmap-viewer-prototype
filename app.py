@@ -109,13 +109,19 @@ def index():
                 #alpha-slider {
                     width: 800px;
                 }
+                #apply-button {
+                    margin-top: 10px;
+                    padding: 5px 15px;
+                    font-size: 16px;
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div id="openseadragon1"></div>
                 <label for="alpha-slider">Adjust Overlay Transparency:</label>
-                <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5" oninput="updateAlpha(this.value)">
+                <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5">
+                <button id="apply-button" onclick="applyNewTransparency()">Apply New Transparency</button>
             </div>
             <script type="text/javascript">
                 var viewer = OpenSeadragon({
@@ -133,13 +139,14 @@ def index():
                     }
                 });
 
-                function updateAlpha(alphaValue) {
+                function applyNewTransparency() {
+                    var alphaValue = document.getElementById("alpha-slider").value;
                     fetch('/set_alpha', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({alpha: alphaValue}),
+                        body: JSON.stringify({ alpha: alphaValue }),
                     })
                     .then(response => response.json())
                     .then(data => {
