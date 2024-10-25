@@ -134,7 +134,8 @@ def index():
                         minLevel: 0,
                         maxLevel: {{ max_level }},
                         getTileUrl: function(level, x, y) {
-                            return "/tile/" + level + "/" + x + "/" + y + "/";
+                            // Add a cache-busting parameter `v` to force fresh tiles to load
+                            return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
                         }
                     }
                 });
@@ -152,7 +153,6 @@ def index():
                     .then(data => {
                         if (data.success) {
                             // Clear the tile cache and reload the viewer
-                            viewer.clearTiles();
                             viewer.world.getItemAt(0).resetDimensions(); // Reset the image dimensions
                             viewer.open({
                                 height: {{ height_value }},
@@ -161,7 +161,8 @@ def index():
                                 minLevel: 0,
                                 maxLevel: {{ max_level }},
                                 getTileUrl: function(level, x, y) {
-                                    return "/tile/" + level + "/" + x + "/" + y + "/";
+                                    // Add a cache-busting parameter `v` to force fresh tiles to load
+                                    return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
                                 }
                             });
                         }
@@ -177,7 +178,8 @@ def index():
                         minLevel: 0,
                         maxLevel: {{ max_level }},
                         getTileUrl: function(level, x, y) {
-                            return "/tile/" + level + "/" + x + "/" + y + "/";
+                            // Add a cache-busting parameter `v` to force fresh tiles to load
+                            return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
                         }
                     });
                 }
