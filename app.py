@@ -10,6 +10,7 @@ import cv2
 
 app = Flask(__name__)
 
+alpha = 0.5  # Transparency of the overlay
 # Directory for uploaded slides
 UPLOAD_FOLDER = "uploaded_slides"
 
@@ -42,7 +43,6 @@ def get_heatmap_overlay(region, heatmap_image):
     heatmap_colormap = cv2.applyColorMap((heatmap_image * 255).astype(np.uint8), cv2.COLORMAP_JET)
 
     # Blend the original region with the heatmap colormap (alpha blending)
-    alpha = 0.5  # Transparency of the overlay
     overlay_image = cv2.addWeighted(region, 1 - alpha, heatmap_colormap, alpha, 0)
 
     return overlay_image
