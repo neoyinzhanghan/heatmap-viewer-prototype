@@ -1,7 +1,6 @@
 from flask import Flask, send_file, request, jsonify, render_template_string
 import openslide
 from PIL import Image
-import numpy as np
 import io
 
 app = Flask(__name__)
@@ -51,18 +50,7 @@ def index():
             <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/openseadragon.min.js"></script>
         </head>
         <body>
-            <div style="display: flex;">
-                <div style="width: 200px;">
-                    <h3>Slide Gallery</h3>
-                    <ul id="slideList">
-                        {% for slide_name in slides %}
-                            <li><button onclick="changeSlide('{{ slide_name }}')">{{ slide_name }}</button></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div id="openseadragon1" style="width: 800px; height: 600px;"></div>
-            </div>
-
+            <div id="openseadragon1" style="width: 800px; height: 600px;"></div>
             <script type="text/javascript">
                 var viewer = OpenSeadragon({
                     id: "openseadragon1",
@@ -79,29 +67,29 @@ def index():
                     }
                 });
 
-                function changeSlide(slideName) {
-                    fetch("/change_slide/" + slideName, {
-                        method: 'POST'
-                    }).then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            viewer.open({
-                                height: {{ height_value }},
-                                width: {{ width_value }},
-                                tileSize: 256,
-                                minLevel: 0,
-                                maxLevel: {{ max_level }},
-                                getTileUrl: function(level, x, y) {
-                                    return "/tile/" + level + "/" + x + "/" + y + "/";
-                                }
-                            });
+                // Function to reload the viewer when a new slide is selected
+                function refreshViewer() {
+                    viewer.world.removeAll();  // Clear existing tiles
+                    viewer.open({
+                        height: {{ height_value }},
+                        width: {{ width_value }},
+                        tileSize: 256,
+                        minLevel: 0,
+                        maxLevel: {{ max_level }},
+                        getTileUrl: function(level, x, y) {
+                            return "/tile/" + level + "/" + x + "/" + y + "/";
                         }
                     });
+                }
+
+                // Automatically refresh the viewer every time the page loads
+                window.onload = function() {
+                    refreshViewer();
                 }
             </script>
         </body>
     </html>
-    """, slides=slides.keys(), height_value=slide.dimensions[1], width_value=slide.dimensions[0], max_level=slide.level_count - 1)
+    """, height_value=slide.dimensions[1], width_value=slide.dimensions[0], max_level=slide.level_count - 1)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
