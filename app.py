@@ -27,30 +27,24 @@ slide = openslide.OpenSlide(current_slide)
 heatmap_tile_maker = HeatMapTileMaker(slide_path=current_slide, tile_size=256)
 heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
 
-def get_overlay(image, score):
+def get_heatmap_overlay(region, heatmap_image):
     """
-    Overlays a black image onto the original image based on the score.
+    Overlays a heatmap image onto the original region.
 
     Parameters:
-    - image (numpy.ndarray): The original image (BGR format for OpenCV).
-    - score (float): A value between 0 and 1 representing the score. 
-                     A higher score indicates less darkening.
-
+    - region (numpy.ndarray): The original region image (BGR format for OpenCV).
+    - heatmap_image (numpy.ndarray): The heatmap image (same size as region, with values in range 0-1).
+    
     Returns:
     - overlay_image (numpy.ndarray): The resulting image with the overlay.
     """
-    # Ensure score is between 0 and 1
-    score = np.clip(score, 0, 1)
-    
-    # Create a black image of the same size as the original image
-    black_image = np.zeros_like(image, dtype=np.uint8)
-    
-    # Compute the weight for the black image
-    alpha = 1 - score
-    
-    # Blend the original image with the black image using alpha
-    overlay_image = cv2.addWeighted(black_image, alpha, image, 1 - alpha, 0)
-    
+    # Convert the heatmap image to a colormap with red to green (values 0 to 1 map to red to green)
+    heatmap_colormap = cv2.applyColorMap((heatmap_image * 255).astype(np.uint8), cv2.COLORMAP_JET)
+
+    # Blend the original region with the heatmap colormap (alpha blending)
+    alpha = 0.5  # Transparency of the overlay
+    overlay_image = cv2.addWeighted(region, 1 - alpha, heatmap_colormap, alpha, 0)
+
     return overlay_image
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
@@ -64,21 +58,14 @@ def get_tile(level, x, y):
         # Read the region from the slide
         region = slide.read_region((tile_x, tile_y), openslide_level, (tile_size, tile_size)).convert("RGB")
         
-        # Get the heatmap value for the given level, x, and y
-        heatmap_value = heatmap_tile_maker.get_heatmap_values(level, x, y)
-        heatmap_value = smooth_function(heatmap_value)  # Ensure a minimum heatmap value of 0.5
-
-        print(f"Heatmap value: {heatmap_value}")
-
-        # Ensure the heatmap value is a float
-        if not isinstance(heatmap_value, (float, np.floating)):
-            raise ValueError("Heatmap value is not a float")
+        # Get the heatmap image for the given level, x, and y
+        heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)  # Assuming this returns a NumPy array between 0 and 1
 
         # Convert the region to a NumPy array (in BGR format for OpenCV)
         region = np.array(region, dtype=np.uint8)
 
-        # Apply the overlay using the heatmap value as the score
-        overlay_image = get_overlay(region, heatmap_value)
+        # Apply the overlay using the heatmap image
+        overlay_image = get_heatmap_overlay(region, heatmap_image)
 
         # Convert the modified overlay image back to a PIL Image
         overlay_pil = Image.fromarray(cv2.cvtColor(overlay_image, cv2.COLOR_BGR2RGB))

@@ -1,5 +1,7 @@
 import openslide
 import numpy as np
+from PIL import Image
+from matplotlib.colors import LinearSegmentedColormap
 from tqdm import tqdm
 from dataset import LowMagRegionDataset
 from torch.utils.data import DataLoader
@@ -9,6 +11,35 @@ from BMAassumptions import region_clf_ckpt_path, high_mag_region_clf_ckpt_path, 
 
 batch_size =512
 num_workers = 32
+
+
+def generate_red_green_heatmap(matrix):
+    """
+    Generates a heatmap where values closer to 0 are red and closer to 1 are green.
+    
+    Parameters:
+    - matrix (numpy.ndarray): A 2D array with values between 0 and 1.
+    
+    Returns:
+    - heatmap_pil (PIL.Image.Image): The heatmap image as a PIL Image object.
+    """
+    # Define the custom colormap: red for 0, green for 1
+    red_green_cmap = LinearSegmentedColormap.from_list("RedGreen", ["red", "green"])
+
+    # Normalize the matrix to range [0, 1] if needed (you mentioned values are between 0 and 1)
+    normalized_matrix = np.clip(matrix, 0, 1)  # Ensure values are in [0, 1]
+
+    # Apply the colormap to the matrix
+    heatmap_image = red_green_cmap(normalized_matrix)
+
+    # Remove the alpha channel from the resulting image (if it exists)
+    heatmap_image = (heatmap_image[:, :, :3] * 255).astype(np.uint8)
+    
+    # Convert the NumPy array to a PIL Image
+    heatmap_pil = Image.fromarray(heatmap_image)
+    
+    return heatmap_pil
+
 
 # Custom collate function to handle PIL images and names
 def custom_collate_fn(batch):
@@ -110,3 +141,27 @@ class HeatMapTileMaker:
             return float(self.dz_heatmap_dict[level][x, y]) # if index out of bounds, return 0
         except IndexError:
             return float(0)
+        
+    def get_heatmap_overlay(self, level, x, y):
+        """
+        Get the heatmap overlay for a specific level and location.
+
+        Parameters:
+        - level (int): The level of the heatmap.
+        - x (int): The x-coordinate of the location.
+        - y (int): The y-coordinate of the location.
+
+        Returns:
+        - np.ndarray: The heatmap overlay as a NumPy array.
+        """
+
+        openslide_level = self.slide.level_count - 1 - level            
+        heatmap_grid_size = 256 // 2 ** (openslide_level)
+
+        heatmap_overlay_score = np.zeros((heatmap_grid_size, heatmap_grid_size))
+
+        for i in range(2**(openslide_level)):
+            for j in range(2**(openslide_level)):
+                heatmap_overlay_score[i*heatmap_grid_size:(i+1)*heatmap_grid_size, j*heatmap_grid_size:(j+1)*heatmap_grid_size] = self.get_heatmap_values(self.slide.level_count - 1, x*2**(openslide_level) + i, y*2**(openslide_level) + j)
+        
+        return generate_red_green_heatmap(heatmap_overlay_score)
