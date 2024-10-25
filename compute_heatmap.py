@@ -106,6 +106,8 @@ class HeatMapTileMaker:
         self.dz_heatmap_dict = {}
 
     def compute_heatmap(self):
+
+        largest_score = 0
         # Iterate through the dataset with a DataLoader and progress bar
         for pil_images, coordinates in tqdm(self.dataloader, desc="Processing Batches"):
             # Predict batch of images
@@ -115,6 +117,10 @@ class HeatMapTileMaker:
                 # Update the heatmap with the confidence score, as a float
                 self.heatmap[x, y] = scores[i]
 
+                # Update the largest score if needed
+                if scores[i] > largest_score:
+                    largest_score = scores[i]
+
         self.dz_heatmap_dict[self.slide.level_count - 1] = self.heatmap
 
         current_heatmap = self.heatmap
@@ -122,6 +128,8 @@ class HeatMapTileMaker:
         for level in range(self.slide.level_count - 2, -1, -1):
             current_heatmap = dyadic_average_downsample_heatmap(current_heatmap)
             self.dz_heatmap_dict[level] = current_heatmap    
+
+        print(f"Largest score: {largest_score}")
         
 
     def get_heatmap_values(self, level, x, y):
