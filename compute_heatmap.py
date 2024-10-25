@@ -7,8 +7,8 @@ from BMARegionClfManager import load_clf_model, predict_batch
 from BMAassumptions import region_clf_ckpt_path, high_mag_region_clf_ckpt_path, high_mag_region_clf_threshold
 
 
-batch_size =256
-num_workers = 16
+batch_size =512
+num_workers = 32
 
 # Custom collate function to handle PIL images and names
 def custom_collate_fn(batch):
