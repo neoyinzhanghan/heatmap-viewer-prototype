@@ -14,6 +14,10 @@ alpha = 0.5
 # Directory for uploaded slides
 UPLOAD_FOLDER = "uploaded_slides"
 
+# Ensure upload folder exists
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
 # Helper function to get the full path of a slide
 def get_slide_path(slide_name):
     return os.path.join(UPLOAD_FOLDER, slide_name)
@@ -23,7 +27,6 @@ slide = None
 heatmap_tile_maker = None
 
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
-    # (Same function as before to blend images)
     heatmap_image = np.array(heatmap_image.convert("RGB"))
     if region.shape[2] != 3:
         raise ValueError("Region image must be in RGB format with 3 channels")
@@ -37,6 +40,7 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
 def get_tile(level, x, y):
+    global slide
     if not slide:
         return "No slide loaded", 400
 
@@ -64,10 +68,14 @@ def change_slide(slide_name):
     global slide, heatmap_tile_maker
     slide_path = get_slide_path(slide_name)
     if os.path.exists(slide_path):
-        slide = openslide.OpenSlide(slide_path)
-        heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=256)
-        heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
-        return jsonify(success=True)
+        try:
+            slide = openslide.OpenSlide(slide_path)
+            heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=256)
+            heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
+            return jsonify(success=True)
+        except Exception as e:
+            print(f"Error loading slide: {e}")
+            return jsonify(success=False), 500
     return jsonify(success=False), 400
 
 @app.route('/set_alpha', methods=['POST'])
@@ -78,6 +86,7 @@ def set_alpha():
 
 @app.route('/')
 def index():
+    global slide
     if not slide:
         return "No slide loaded", 400
 

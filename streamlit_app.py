@@ -25,12 +25,15 @@ if uploaded_file:
     # Display submit button to load the slide
     if st.sidebar.button("Submit Slide"):
         # Send the uploaded slide to the Flask server
-        response = requests.post(f"http://127.0.0.1:5000/change_slide/{uploaded_file.name}")
-        if response.ok:
-            st.sidebar.success(f"Slide {uploaded_file.name} is now loaded.")
-            slide_uploaded = True
-        else:
-            st.sidebar.error(f"Failed to load slide {uploaded_file.name}")
+        try:
+            response = requests.post(f"http://127.0.0.1:5000/change_slide/{uploaded_file.name}")
+            if response.ok:
+                st.sidebar.success(f"Slide {uploaded_file.name} is now loaded.")
+                slide_uploaded = True
+            else:
+                st.sidebar.error(f"Failed to load slide {uploaded_file.name}. Server error.")
+        except requests.exceptions.RequestException as e:
+            st.sidebar.error(f"Failed to connect to server: {e}")
 
 # Alpha slider
 if slide_uploaded:
@@ -38,9 +41,12 @@ if slide_uploaded:
     st.session_state.alpha = alpha
 
     # Send alpha value to the server whenever it changes
-    response = requests.post(f"http://127.0.0.1:5000/set_alpha", json={"alpha": alpha})
-    if not response.ok:
-        st.error("Failed to update transparency setting.")
+    try:
+        response = requests.post(f"http://127.0.0.1:5000/set_alpha", json={"alpha": alpha})
+        if not response.ok:
+            st.error("Failed to update transparency setting.")
+    except requests.exceptions.RequestException as e:
+        st.error(f"Failed to connect to server: {e}")
 
     st.write("Use the OpenSeadragon viewer below to interact with the selected slide.")
     st.markdown(f"""
