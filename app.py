@@ -37,6 +37,8 @@ def get_tile(level, x, y):
         # Get the heatmap value for the given level, x, and y
         heatmap_value = heatmap_tile_maker.get_heatmap_values(level, x, y)
 
+        print(f"Heatmap value: {heatmap_value}")
+
         # Ensure the heatmap value is a float
         if not isinstance(heatmap_value, (float, np.floating)):
             raise ValueError("Heatmap value is not a float")
