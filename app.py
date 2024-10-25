@@ -29,7 +29,6 @@ heatmap_tile_maker = HeatMapTileMaker(slide_path=current_slide, tile_size=256)
 heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
 
 
-
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """
     Overlays a heatmap image onto the original region.
@@ -47,22 +46,24 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     heatmap_image = np.array(heatmap_image.convert("RGB"))  # Convert to NumPy array if needed
 
     # Ensure that region is in RGB format and is a NumPy array
-    if region.shape[2] == 3:  # Ensure the region has three channels (RGB)
-        region_bgr = cv2.cvtColor(region, cv2.COLOR_RGB2BGR)  # Convert region to BGR for OpenCV
-    else:
+    if region.shape[2] != 3:  # Ensure the region has three channels (RGB)
         raise ValueError("Region image must be in RGB format with 3 channels")
 
-    # Convert the heatmap image from RGB to BGR (as OpenCV works with BGR)
-    heatmap_bgr = cv2.cvtColor(heatmap_image, cv2.COLOR_RGB2BGR)
+    # Normalize the region and heatmap images to range [0, 1]
+    region = region.astype(np.float32) / 255.0
+    heatmap_image = heatmap_image.astype(np.float32) / 255.0
 
-    # Blend the original region with the heatmap image (alpha blending)
-    overlay_image_np = cv2.addWeighted(region_bgr, 1 - alpha, heatmap_bgr, alpha, 0)
+    # Blend the images using alpha
+    overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
 
-    # Convert the result back to a PIL image in RGB format
-    overlay_image = Image.fromarray(cv2.cvtColor(overlay_image_np, cv2.COLOR_BGR2RGB))
+    # Clip values to ensure they are in range [0, 1]
+    overlay_image_np = np.clip(overlay_image_np, 0, 1)
+
+    # Convert the result back to an 8-bit image and then to a PIL image
+    overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
+    overlay_image = Image.fromarray(overlay_image_np)
 
     return overlay_image
-
 
 
 
