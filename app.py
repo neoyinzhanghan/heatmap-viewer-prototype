@@ -6,7 +6,6 @@ import openslide
 import io
 import numpy as np
 import os
-import cv2
 
 app = Flask(__name__)
 
@@ -87,12 +86,9 @@ def get_tile(level, x, y):
         # Apply the overlay using the heatmap image
         overlay_image = get_heatmap_overlay(region, heatmap_image)
 
-        # Convert the modified overlay image back to a PIL Image
-        overlay_pil = Image.fromarray(cv2.cvtColor(overlay_image, cv2.COLOR_BGR2RGB))
-
         # Save the image to a BytesIO object to serve it
         img_io = io.BytesIO()
-        overlay_pil.save(img_io, format='JPEG', quality=90)
+        overlay_image.save(img_io, format='JPEG', quality=90)
         img_io.seek(0)
         return send_file(img_io, mimetype='image/jpeg')
     except Exception as e:
