@@ -14,13 +14,12 @@ slide = openslide.OpenSlide(slide_path)
 def get_tile(level, x, y):
     tile_size = 256  # OpenSeadragon default tile size
     # Calculate pixel coordinates for the requested tile
-    tile_x = x * tile_size
-    tile_y = y * tile_size
+    openslide_level = slide.level_count - 1 - level
+    tile_x = x * tile_size * (2 ** openslide_level)
+    tile_y = y * tile_size * (2 ** openslide_level)
 
     # Read the region and return it as an image
-    try:
-
-        openslide_level = slide.level_count - 1 - level
+    try:        
         region = slide.read_region((tile_x, tile_y), openslide_level, (tile_size, tile_size)).convert("RGB")
         img_io = io.BytesIO()
         region.save(img_io, format='JPEG', quality=90)
