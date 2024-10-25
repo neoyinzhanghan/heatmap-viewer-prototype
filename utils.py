@@ -1,4 +1,4 @@
-def smooth_function(x, beta=2.0):
+def smooth_function(x, beta=3.0):
     """
     Smoothly shifts the input value towards 1 using a power function.
     

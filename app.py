@@ -6,6 +6,7 @@ import openslide
 import io
 import numpy as np
 import os
+import cv2
 
 app = Flask(__name__)
 
@@ -16,6 +17,8 @@ UPLOAD_FOLDER = "uploaded_slides"
 def get_slide_path(slide_name):
     return os.path.join(UPLOAD_FOLDER, slide_name)
 
+white_image = Image.new("RGB", (256, 256), (255, 255, 255))
+
 # Set a default slide and initialize HeatMapTileMaker
 current_slide = get_slide_path("/media/hdd3/neo/default_slide.ndpi")  # Change to an actual default slide path if needed
 slide = openslide.OpenSlide(current_slide)
@@ -23,6 +26,32 @@ slide = openslide.OpenSlide(current_slide)
 # Create an instance of HeatMapTileMaker and compute the heatmap once
 heatmap_tile_maker = HeatMapTileMaker(slide_path=current_slide, tile_size=256)
 heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
+
+def get_overlay(image, score):
+    """
+    Overlays a black image onto the original image based on the score.
+
+    Parameters:
+    - image (numpy.ndarray): The original image (BGR format for OpenCV).
+    - score (float): A value between 0 and 1 representing the score. 
+                     A higher score indicates less darkening.
+
+    Returns:
+    - overlay_image (numpy.ndarray): The resulting image with the overlay.
+    """
+    # Ensure score is between 0 and 1
+    score = np.clip(score, 0, 1)
+    
+    # Create a black image of the same size as the original image
+    black_image = np.zeros_like(image, dtype=np.uint8)
+    
+    # Compute the weight for the black image
+    alpha = 1 - score
+    
+    # Blend the original image with the black image using alpha
+    overlay_image = cv2.addWeighted(black_image, alpha, image, 1 - alpha, 0)
+    
+    return overlay_image
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
 def get_tile(level, x, y):
@@ -45,19 +74,18 @@ def get_tile(level, x, y):
         if not isinstance(heatmap_value, (float, np.floating)):
             raise ValueError("Heatmap value is not a float")
 
-        # Convert the region to a NumPy array and ensure it is of type float32
-        region = np.array(region, dtype=np.float32) / 255.0  # Normalize the pixel values to [0, 1]
+        # Convert the region to a NumPy array (in BGR format for OpenCV)
+        region = np.array(region, dtype=np.uint8)
 
-        # Multiply each pixel value by the heatmap value (between 0 and 1)
-        region *= heatmap_value  # Apply heatmap multiplier
-        region = np.clip(region * 255.0, 0, 255).astype(np.uint8)  # Convert back to uint8 for image representation
+        # Apply the overlay using the heatmap value as the score
+        overlay_image = get_overlay(region, heatmap_value)
 
-        # Convert the modified region back to an image
-        region_image = Image.fromarray(region)
+        # Convert the modified overlay image back to a PIL Image
+        overlay_pil = Image.fromarray(cv2.cvtColor(overlay_image, cv2.COLOR_BGR2RGB))
 
         # Save the image to a BytesIO object to serve it
         img_io = io.BytesIO()
-        region_image.save(img_io, format='JPEG', quality=90)
+        overlay_pil.save(img_io, format='JPEG', quality=90)
         img_io.seek(0)
         return send_file(img_io, mimetype='image/jpeg')
     except Exception as e:
