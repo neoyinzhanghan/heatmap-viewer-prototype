@@ -7,7 +7,7 @@ import io
 app = Flask(__name__)
 
 # Path to your NDPI slide
-slide_path = "/media/hdd3/neo/BMA_AML/H19-5352;S1;MSKZ - 2023-12-12 01.47.31.ndpi"
+slide_path = "/media/hdd3/neo/test_slide.ndpi"
 slide = openslide.OpenSlide(slide_path)
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
