@@ -92,7 +92,7 @@ class HeatMapTileMaker:
     - model: the classifier model to predict the heatmap
 
     """
-    def __init__(self, slide_path, tile_size=256):
+    def __init__(self, slide_path, tile_size=512):
         self.slide_path = slide_path
         self.tile_size = tile_size
         self.slide = openslide.OpenSlide(self.slide_path)
@@ -101,8 +101,8 @@ class HeatMapTileMaker:
         # Load the model
         self.model = load_clf_model(region_clf_ckpt_path)
 
-        # shape of the heatmap should be slide_width_level_0 // 256, slide_height_level_0 // 256, we start by initializing it to zeros numpy array
-        self.heatmap = np.zeros((self.slide.dimensions[0] // 256, self.slide.dimensions[1] // 256))
+        # shape of the heatmap should be slide_width_level_0 // 512, slide_height_level_0 // 512, we start by initializing it to zeros numpy array
+        self.heatmap = np.zeros((self.slide.dimensions[0] // 512, self.slide.dimensions[1] // 512))
         self.dz_heatmap_dict = {}
 
     def compute_heatmap(self):
@@ -164,9 +164,9 @@ class HeatMapTileMaker:
         """
 
         openslide_level = self.slide.level_count - 1 - level            
-        heatmap_grid_size = 256 // 2 ** (openslide_level)
+        heatmap_grid_size = 512 // 2 ** (openslide_level)
 
-        heatmap_overlay_score = np.zeros((256, 256))
+        heatmap_overlay_score = np.zeros((512, 512))
 
         for i in range(2**(openslide_level)):
             for j in range(2**(openslide_level)):
