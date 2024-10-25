@@ -154,8 +154,8 @@ class HeatMapTileMaker:
         Get the heatmap values at a specific level and location using a gaussian kernel centered at the center of the slide, with sigma = 1/3 of the slide height.
         """
         slide_width, slide_height = self.slide.dimensions
-        center_x = (slide_width // self.tile_size) // 2
-        center_y = (slide_height // self.tile_size) // 2
+        center_x = 2 * (slide_width // self.tile_size) // 3
+        center_y = 2 *(slide_height // self.tile_size) // 3
         sigma = (slide_height // self.tile_size) / 3
         heatmap_values = np.exp(-((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma ** 2))
         return heatmap_values
