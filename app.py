@@ -28,24 +28,36 @@ slide = openslide.OpenSlide(current_slide)
 heatmap_tile_maker = HeatMapTileMaker(slide_path=current_slide, tile_size=256)
 heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
 
-def get_heatmap_overlay(region, heatmap_image):
+def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """
     Overlays a heatmap image onto the original region.
 
     Parameters:
-    - region (numpy.ndarray): The original region image (BGR format for OpenCV).
-    - heatmap_image (numpy.ndarray): The heatmap image (same size as region, with values in range 0-1).
+    - region (PIL.Image.Image): The original region image (RGB format).
+    - heatmap_image (PIL.Image.Image): The heatmap image (same size as region, with values in range 0-1).
+    - alpha (float): The blending weight for the heatmap overlay (default is 0.5).
     
     Returns:
-    - overlay_image (numpy.ndarray): The resulting image with the overlay.
+    - overlay_image (PIL.Image.Image): The resulting image with the overlay.
     """
-    # Convert the heatmap image to a colormap with red to green (values 0 to 1 map to red to green)
-    heatmap_colormap = cv2.applyColorMap((heatmap_image * 255).astype(np.uint8), cv2.COLORMAP_JET)
+    # Convert both PIL images to NumPy arrays (OpenCV uses BGR format by default)
+    region_np = np.array(region.convert("RGB"))[:, :, ::-1]  # Convert to NumPy and RGB to BGR
+    heatmap_np = np.array(heatmap_image.convert("L"))  # Convert to grayscale (single channel)
+    
+    # Normalize the heatmap values to range [0, 1] if not already
+    heatmap_np = heatmap_np / 255.0
+    
+    # Convert the normalized heatmap to a colormap with red to green (values 0 to 1 map to red to green)
+    heatmap_colormap = cv2.applyColorMap((heatmap_np * 255).astype(np.uint8), cv2.COLORMAP_JET)
 
     # Blend the original region with the heatmap colormap (alpha blending)
-    overlay_image = cv2.addWeighted(region, 1 - alpha, heatmap_colormap, alpha, 0)
+    overlay_image_np = cv2.addWeighted(region_np, 1 - alpha, heatmap_colormap, alpha, 0)
+
+    # Convert the result back to a PIL image in RGB format
+    overlay_image = Image.fromarray(cv2.cvtColor(overlay_image_np, cv2.COLOR_BGR2RGB))
 
     return overlay_image
+
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
 def get_tile(level, x, y):
