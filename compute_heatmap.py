@@ -174,13 +174,13 @@ class HeatMapTileMaker:
         """
 
         openslide_level = self.slide.level_count - 1 - level            
-        heatmap_grid_size = 512 // 2 ** (openslide_level)
+        heatmap_grid_size = 512 // (2 ** (openslide_level))
 
         heatmap_overlay_score = np.zeros((512, 512))
 
         for i in range(2**(openslide_level)):
             for j in range(2**(openslide_level)):
-                heatmap_overlay_score[i*heatmap_grid_size:(i+1)*heatmap_grid_size, j*heatmap_grid_size:(j+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*2**(openslide_level) + i, y*2**(openslide_level) + j)
+                heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*(2**(openslide_level)) + i, y*(2**(openslide_level)) + j)
                 # self.get_heatmap_values(self.slide.level_count - 1, x*2**(openslide_level) + i, y*2**(openslide_level) + j)
         
         return generate_red_green_heatmap(heatmap_overlay_score)
