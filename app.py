@@ -11,12 +11,8 @@ app = Flask(__name__)
 
 # Transparency of the overlay (default value)
 alpha = 0.5
-# Directory for uploaded slides
-UPLOAD_FOLDER = "uploaded_slides"
-
-# Ensure upload folder exists
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Directory for uploaded slides (not used anymore)
+UPLOAD_FOLDER = "/media/hdd3/neo/"
 
 # Helper function to get the full path of a slide
 def get_slide_path(slide_name):

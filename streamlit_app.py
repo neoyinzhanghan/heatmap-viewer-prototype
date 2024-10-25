@@ -1,39 +1,32 @@
-import os
 import requests
 import streamlit as st
 
-# Directory to store uploaded slides
-UPLOAD_FOLDER = "uploaded_slides"
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# List of available slides
+slide_options = {
+    "Test Slide 1": "/media/hdd3/neo/test_slide_1.ndpi",
+    "Test Slide 2": "/media/hdd3/neo/test_slide_2.ndpi",
+    "Test Slide 3": "/media/hdd3/neo/test_slide_3.ndpi"
+}
 
-# Streamlit sidebar for uploading slides
-st.sidebar.title("Slide Upload")
-
-# Upload slide feature
-uploaded_file = st.sidebar.file_uploader("Upload a slide (.ndpi)", type="ndpi")
+# Streamlit sidebar for selecting slides
+st.sidebar.title("Slide Selection")
+selected_slide_name = st.sidebar.selectbox("Choose a slide", list(slide_options.keys()))
 slide_uploaded = False
 
-# Submit button to process the uploaded slide
-if uploaded_file:
-    # Save the uploaded file
-    file_path = os.path.join(UPLOAD_FOLDER, uploaded_file.name)
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    st.sidebar.success(f"Successfully uploaded {uploaded_file.name}")
-
-    # Display submit button to load the slide
-    if st.sidebar.button("Submit Slide"):
-        # Send the uploaded slide to the Flask server
-        try:
-            response = requests.post(f"http://127.0.0.1:5000/change_slide/{uploaded_file.name}")
-            if response.ok:
-                st.sidebar.success(f"Slide {uploaded_file.name} is now loaded.")
-                slide_uploaded = True
-            else:
-                st.sidebar.error(f"Failed to load slide {uploaded_file.name}. Server error.")
-        except requests.exceptions.RequestException as e:
-            st.sidebar.error(f"Failed to connect to server: {e}")
+# Submit button to process the selected slide
+if st.sidebar.button("Submit Slide"):
+    selected_slide_path = slide_options[selected_slide_name].split("/")[-1]
+    
+    # Send the selected slide to the Flask server
+    try:
+        response = requests.post(f"http://127.0.0.1:5000/change_slide/{selected_slide_path}")
+        if response.ok:
+            st.sidebar.success(f"Slide {selected_slide_name} is now loaded.")
+            slide_uploaded = True
+        else:
+            st.sidebar.error(f"Failed to load slide {selected_slide_name}. Server error.")
+    except requests.exceptions.RequestException as e:
+        st.sidebar.error(f"Failed to connect to server: {e}")
 
 # Alpha slider
 if slide_uploaded:
