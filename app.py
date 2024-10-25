@@ -40,7 +40,7 @@ def get_tile(level, x, y):
     if not slide:
         return "No slide loaded", 400
 
-    tile_size = 256
+    tile_size = 512
     openslide_level = slide.level_count - 1 - level
     tile_x = x * tile_size * (2 ** openslide_level)
     tile_y = y * tile_size * (2 ** openslide_level)
@@ -66,7 +66,7 @@ def change_slide(slide_name):
     if os.path.exists(slide_path):
         try:
             slide = openslide.OpenSlide(slide_path)
-            heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=256)
+            heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=512)
             heatmap_tile_maker.compute_heatmap()  # Assume this is a blocking method
             return jsonify(success=True)
         except Exception as e:
@@ -101,7 +101,7 @@ def index():
                     tileSources: {
                         height: {{ height_value }},
                         width: {{ width_value }},
-                        tileSize: 256,
+                        tileSize: 512,
                         minLevel: 0,
                         maxLevel: {{ max_level }},
                         getTileUrl: function(level, x, y) {
@@ -115,7 +115,7 @@ def index():
                     viewer.open({
                         height: {{ height_value }},
                         width: {{ width_value }},
-                        tileSize: 256,
+                        tileSize: 512,
                         minLevel: 0,
                         maxLevel: {{ max_level }},
                         getTileUrl: function(level, x, y) {
