@@ -14,7 +14,7 @@ def get_slide_path(slide_name):
     return os.path.join(UPLOAD_FOLDER, slide_name)
 
 # Set a default slide
-current_slide = get_slide_path("default_slide.ndpi")  # Change to an actual default slide path if needed
+current_slide = get_slide_path("/media/hdd3/neo/default_slide.ndpi")  # Change to an actual default slide path if needed
 slide = openslide.OpenSlide(current_slide)
 
 @app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
