@@ -20,7 +20,7 @@ s3_subfolder = "wsi-and-heatmaps"
 dzsave_h5(
     slide_path,
     tmp_save_path,
-    tile_size=256,
+    tile_size=512,
     num_cpus=32,
     region_cropping_batch_size=256,
 )
