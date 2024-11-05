@@ -43,12 +43,7 @@ with h5py.File(slide_h5_path, "r") as f:
 
     height = int(height)
     width = int(width)
-    
-    print(height, width)
 
-import sys
-
-sys.exit()
 
 # Global variables
 alpha = DEFAULT_ALPHA
