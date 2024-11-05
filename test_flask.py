@@ -37,7 +37,7 @@ alpha = DEFAULT_ALPHA
 with h5py.File(heatmap_h5_path, "r") as f:
     heatmap_dataset = f["heatmap"]
     heatmap = np.array(heatmap_dataset)
-    heatmap_tile_maker = HeatMapTileLoader(heatmap=heatmap, tile_size=TILE_SIZE)
+    heatmap_tile_maker = HeatMapTileLoader(np_heatmap=heatmap, tile_size=TILE_SIZE)
     heatmap_tile_maker.compute_heatmap()
 
 def retrieve_tile_h5(h5_path, level, row, col):
