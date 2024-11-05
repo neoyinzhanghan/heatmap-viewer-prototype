@@ -27,10 +27,6 @@ with h5py.File(slide_h5_path, "r") as f:
     for i in range(19):
         print(f"Shape of level {i}: {f[str(i)].shape}")
 
-import sys
-
-sys.exit()
-
 # Load heatmap data with dimension check
 with h5py.File(heatmap_h5_path, "r") as f:
     heatmap_dataset = f["heatmap"]
