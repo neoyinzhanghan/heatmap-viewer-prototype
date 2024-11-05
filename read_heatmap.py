@@ -100,3 +100,15 @@ class HeatMapTileLoader:
             f.create_dataset("heatmap", data=self.dz_heatmap_dict[18])
 
         print(f"Saved heatmap to {heatmap_h5_save_path}")
+
+
+def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
+    heatmap_image = np.array(heatmap_image.convert("RGB"))
+    if region.shape[2] != 3:
+        raise ValueError("Region image must be in RGB format with 3 channels")
+    region = region.astype(np.float32) / 255.0
+    heatmap_image = heatmap_image.astype(np.float32) / 255.0
+    overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
+    overlay_image_np = np.clip(overlay_image_np, 0, 1)
+    overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
+    return Image.fromarray(overlay_image_np)

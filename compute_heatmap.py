@@ -292,13 +292,6 @@ class HeatMapTileLoader:
         print(f"Saved heatmap to {heatmap_h5_save_path}")
 
 
-if __name__ == "__main__":
-    slide_path = (
-        "/media/hdd3/neo/tmp_slide_dir/H19-5749;S10;MSKI - 2023-05-24 21.38.53.ndpi"
-    )
-    heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
-    create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
-
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     heatmap_image = np.array(heatmap_image.convert("RGB"))
     if region.shape[2] != 3:
@@ -309,3 +302,11 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     overlay_image_np = np.clip(overlay_image_np, 0, 1)
     overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
     return Image.fromarray(overlay_image_np)
+
+
+if __name__ == "__main__":
+    slide_path = (
+        "/media/hdd3/neo/tmp_slide_dir/H19-5749;S10;MSKI - 2023-05-24 21.38.53.ndpi"
+    )
+    heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
+    create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
