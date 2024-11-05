@@ -44,6 +44,7 @@ except Exception as e:
     print(f"Error loading heatmap: {e}")
     heatmap_tile_maker = None
 
+
 def retrieve_tile_h5(h5_path, level, row, col):
     """Retrieve tile from an HDF5 file."""
     try:
@@ -55,6 +56,7 @@ def retrieve_tile_h5(h5_path, level, row, col):
         print(f"Error retrieving tile at level {level}, row {row}, col {col}: {e}")
         return None
 
+
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """Create overlay of region and heatmap."""
     heatmap_image = np.array(heatmap_image.convert("RGB"))
@@ -64,10 +66,20 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
     return (np.clip(overlay_image_np, 0, 1) * 255).astype(np.uint8)
 
+
+@app.route("/dimensions", methods=["GET"])
+def get_dimensions():
+    """Endpoint to retrieve slide dimensions."""
+    if not height or not width:
+        return jsonify(error="Slide dimensions not set"), 500
+    return jsonify(height=height, width=width)
+
+
 @app.route("/")
 def index():
     """Root endpoint for testing."""
     return "Flask server is running", 200
+
 
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(level, x, y):
@@ -76,7 +88,7 @@ def get_tile(level, x, y):
         return "Slide dimensions not set", 500
     if not heatmap_tile_maker:
         return "Heatmap not initialized", 500
-    
+
     try:
         # Retrieve the base tile
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
@@ -85,18 +97,23 @@ def get_tile(level, x, y):
 
         # Retrieve the heatmap overlay for the tile
         heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
-        overlay_image = get_heatmap_overlay(np.array(region), heatmap_image, alpha=alpha)
-        
+        overlay_image = get_heatmap_overlay(
+            np.array(region), heatmap_image, alpha=alpha
+        )
+
         # Convert to JPEG and send
         img_io = io.BytesIO()
         Image.fromarray(overlay_image).save(img_io, format="JPEG", quality=90)
         img_io.seek(0)
         response = make_response(send_file(img_io, mimetype="image/jpeg"))
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
         return response
     except Exception as e:
         print(f"Error serving tile at level {level}, row {x}, col {y}: {e}")
         return f"Tile not found: {str(e)}", 404
+
 
 @app.route("/set_alpha", methods=["POST"])
 def set_alpha():
@@ -110,6 +127,7 @@ def set_alpha():
     except (TypeError, ValueError) as e:
         print(f"Error setting alpha: {e}")
         return jsonify(success=False, error=str(e)), 400
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
