@@ -20,10 +20,12 @@ s3_subfolder = "wsi-and-heatmaps"
 dzsave_h5(
     slide_path,
     tmp_save_path,
-    tile_size=512,
+    tile_size=256,
     num_cpus=32,
     region_cropping_batch_size=256,
 )
+
+print("H5 file created successfully.")
 
 # Initialize S3 client using credentials from environment variables
 s3 = boto3.client(
