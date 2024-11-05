@@ -14,6 +14,23 @@ CORS(app)
 # Root directory where slides are stored
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
 
+slide_name = "bma_test_slide"
+
+slide_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + ".h5")
+heatmap_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + "_heatmap.h5")
+
+
+# Load heatmap data with dimension check
+with h5py.File(heatmap_h5_path, "r") as f:
+    heatmap_dataset = f["heatmap"]
+    print(f"Heatmap dataset shape: {heatmap_dataset.shape}")
+
+    # make sure heatmap dataset is a numpy array
+    heatmap = np.array(heatmap_dataset)
+    # Create heatmap tile loader
+    heatmap_tile_loader = HeatMapTileLoader(np_heatmap=heatmap)
+    heatmap_tile_loader.compute_heatmap()
+
 
 def retrieve_tile_h5(h5_path, level, row, col):
     """Retrieve the tile from an HDF5 file given level, row, and col."""
@@ -37,25 +54,11 @@ def image_to_jpeg_string(image):
 
 
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
-def load_tile(level, x, y, slide_name="bma_test_slide"):
+def load_tile(level, x, y):
     """Load and overlay heatmap tile with region tile."""
     alpha = float(request.args.get("alpha", 0.5))
-    slide_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + ".h5")
-    heatmap_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + "_heatmap.h5")
 
     try:
-        # Load heatmap data with dimension check
-        with h5py.File(heatmap_h5_path, "r") as f:
-            heatmap_dataset = f["heatmap"]
-            print(f"Heatmap dataset shape: {heatmap_dataset.shape}")
-
-            # make sure heatmap dataset is a numpy array
-            heatmap = np.array(heatmap_dataset)
-
-            # Create heatmap tile loader
-            heatmap_tile_loader = HeatMapTileLoader(np_heatmap=heatmap)
-            heatmap_tile_loader.compute_heatmap()
-
         # Retrieve the tile region from the slide
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
         heatmap_image = heatmap_tile_loader.get_heatmap_image(level, x, y)
