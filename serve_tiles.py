@@ -54,6 +54,7 @@ def load_tile(level, x, y, slide_name="bma_test_slide"):
 
             # Create heatmap tile loader
             heatmap_tile_loader = HeatMapTileLoader(np_heatmap=heatmap)
+            heatmap_tile_loader.compute_heatmap()
 
         # Retrieve the tile region from the slide
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
