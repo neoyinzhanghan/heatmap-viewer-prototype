@@ -312,8 +312,8 @@ def retrieve_tile(dzsave_dir, level, x, y):
 
 
 if __name__ == "__main__":
-    slide_path = ""
-    tmp_save_dir = ""
+    slide_path = "/media/hdd3/neo/BMA_AML/H23-9432;S14;MSK1 - 2023-12-12 04.55.10.ndpi"
+    tmp_save_dir = "/media/hdd3/neo/S3_tmp_dir"
     folder_name = "bma_test_slide"
 
     dzsave(
