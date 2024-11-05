@@ -27,6 +27,8 @@ dzsave_h5(
 
 print("H5 file created successfully.")
 
+print("Uploading H5 file to S3...")
+start_time = time.time()
 # Initialize S3 client using credentials from environment variables
 s3 = boto3.client(
     "s3",
@@ -46,4 +48,6 @@ def upload_file_to_s3(local_path, s3_bucket, s3_key):
 h5_s3_key = f"{s3_subfolder}/{os.path.basename(tmp_save_path)}"
 upload_file_to_s3(tmp_save_path, s3_bucket_name, h5_s3_key)
 
+end_time = time.time()
 print("H5 file uploaded successfully.")
+print(f"Time taken: {end_time - start_time:.2f} seconds.")
