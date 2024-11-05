@@ -32,6 +32,40 @@ def generate_red_green_heatmap(matrix):
     return heatmap_pil
 
 
+def dyadic_average_downsample_heatmap(float_matrix):
+    """
+    Downsample the heatmap by averaging the values in 2x2 blocks.
+
+    Parameters:
+    - float_matrix (np.ndarray): The heatmap as a float numpy array.
+
+    Returns:
+    - np.ndarray: The downsampled heatmap.
+    """
+    # Get the dimensions of the input matrix
+    height, width = float_matrix.shape
+
+    # remove the last row and column if the height or width is odd
+    if height % 2 != 0:
+        float_matrix = float_matrix[:-1]
+        height -= 1
+    if width % 2 != 0:
+        float_matrix = float_matrix[:, :-1]
+        width -= 1
+
+    # Compute the new dimensions after downsampling
+    new_height = height // 2
+    new_width = width // 2
+
+    # Reshape the input matrix to a 4D tensor
+    reshaped_matrix = float_matrix.reshape(new_height, 2, new_width, 2)
+
+    # Average the values in each 2x2 block
+    downsampled_matrix = reshaped_matrix.mean(axis=(1, 3))
+
+    return downsampled_matrix
+
+
 class HeatMapTileLoader:
     """ """
 
@@ -40,6 +74,19 @@ class HeatMapTileLoader:
         # shape of the heatmap should be slide_width_level_0 // 512, slide_height_level_0 // 512, we start by initializing it to zeros numpy array
         self.heatmap = np_heatmap
         self.dz_heatmap_dict = {}
+
+    def compute_heatmap(self):
+
+        largest_score = 0
+        self.dz_heatmap_dict[18] = self.heatmap
+
+        current_heatmap = self.heatmap
+
+        for level in range(18 - 1, -1, -1):
+            current_heatmap = dyadic_average_downsample_heatmap(current_heatmap)
+            self.dz_heatmap_dict[level] = current_heatmap
+
+        print(f"Largest score: {largest_score}")
 
     def get_heatmap_values(self, level, x, y):
         """

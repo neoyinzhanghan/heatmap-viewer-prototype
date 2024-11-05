@@ -231,6 +231,19 @@ class HeatMapTileLoader:
         self.heatmap = np_heatmap
         self.dz_heatmap_dict = {}
 
+    def compute_heatmap(self):
+
+        largest_score = 0
+        self.dz_heatmap_dict[18] = self.heatmap
+
+        current_heatmap = self.heatmap
+
+        for level in range(18 - 1, -1, -1):
+            current_heatmap = dyadic_average_downsample_heatmap(current_heatmap)
+            self.dz_heatmap_dict[level] = current_heatmap
+
+        print(f"Largest score: {largest_score}")
+
     def get_heatmap_values(self, level, x, y):
         """
         Get the heatmap values at a specific level and location.
