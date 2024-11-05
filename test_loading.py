@@ -64,11 +64,13 @@ def load_tile(level, x, y):
     """Load and overlay heatmap tile with region tile."""
     alpha = 0.5
 
+    print("Loading tile from h5...")
     # Retrieve the tile region from the slide
     region = retrieve_tile_h5(slide_h5_path, level, x, y)
+    print("Calculating heatmap image...")
     heatmap_image = heatmap_tile_loader.get_heatmap_image(level, x, y)
-
     # Convert region to numpy and overlay heatmap
+    print("Overlaying heatmap...")
     overlay_image = get_heatmap_overlay(np.array(region), heatmap_image, alpha=alpha)
 
     return overlay_image
