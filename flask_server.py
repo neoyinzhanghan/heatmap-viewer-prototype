@@ -27,24 +27,25 @@ SLIDE_NAME = "bma_test_slide"
 slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}.h5")
 heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}_heatmap.h5")
 
-# Read slide dimensions
+# Global variables
+alpha = DEFAULT_ALPHA
+
+# Initialize slide dimensions and heatmap
 try:
     with h5py.File(slide_h5_path, "r") as f:
         height = int(f["level_0_height"][()])
         width = int(f["level_0_width"][()])
+    print(f"Loaded slide dimensions: height={height}, width={width}")
 except Exception as e:
     print(f"Error reading slide dimensions: {e}")
     height, width = None, None
 
-# Global variables
-alpha = DEFAULT_ALPHA
-
-# Initialize heatmap on startup
 try:
     with h5py.File(heatmap_h5_path, "r") as f:
         heatmap = np.array(f["heatmap"])
         heatmap_tile_maker = HeatMapTileLoader(np_heatmap=heatmap, tile_size=TILE_SIZE)
         heatmap_tile_maker.compute_heatmap()
+    print("Heatmap initialized successfully")
 except Exception as e:
     print(f"Error loading heatmap: {e}")
     heatmap_tile_maker = None
@@ -69,20 +70,30 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
     return (np.clip(overlay_image_np, 0, 1) * 255).astype(np.uint8)
 
+@app.route("/")
+def index():
+    """Root endpoint for testing."""
+    return "Flask server is running", 200
+
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(level, x, y):
+    """Retrieve a tile and apply the heatmap overlay."""
     if not height or not width:
         return "Slide dimensions not set", 500
     if not heatmap_tile_maker:
         return "Heatmap not initialized", 500
     
     try:
+        # Retrieve the base tile
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
         if region is None:
             return "Tile not found", 404
 
+        # Retrieve the heatmap overlay for the tile
         heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
         overlay_image = get_heatmap_overlay(np.array(region), heatmap_image, alpha=alpha)
+        
+        # Convert to JPEG and send
         img_io = io.BytesIO()
         Image.fromarray(overlay_image).save(img_io, format="JPEG", quality=90)
         img_io.seek(0)
@@ -90,15 +101,17 @@ def get_tile(level, x, y):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         return response
     except Exception as e:
-        print(f"Error serving tile: {e}")
+        print(f"Error serving tile at level {level}, row {x}, col {y}: {e}")
         return f"Tile not found: {str(e)}", 404
 
 @app.route("/set_alpha", methods=["POST"])
 def set_alpha():
+    """Set the transparency level for the overlay."""
     global alpha
     try:
         alpha_value = request.json.get("alpha", DEFAULT_ALPHA)
         alpha = float(alpha_value)
+        print(f"Alpha set to: {alpha}")
         return jsonify(success=True)
     except (TypeError, ValueError) as e:
         print(f"Error setting alpha: {e}")
