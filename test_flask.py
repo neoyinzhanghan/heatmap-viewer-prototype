@@ -32,8 +32,14 @@ heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}_heatmap.h5")
 
 # open the slide h5 file and get all the keys
 with h5py.File(slide_h5_path, "r") as f:
-    height = f.attrs["level_0_height"]
-    width = f.attrs["level_0_width"]
+    height = f["level_0_height"]
+    width = f["level_0_width"]
+
+    print(height, width)
+
+import sys
+
+sys.exit()
 
 # Global variables
 alpha = DEFAULT_ALPHA
