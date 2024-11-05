@@ -20,6 +20,14 @@ slide_name = "bma_test_slide"
 slide_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + ".h5")
 heatmap_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + "_heatmap.h5")
 
+# open the slide h5 file and get all the keys
+with h5py.File(slide_h5_path, "r") as f:
+    print(f"Keys in slide h5 file: {list(f.keys())}")
+
+import sys
+
+sys.exit()
+
 # Load heatmap data with dimension check
 with h5py.File(heatmap_h5_path, "r") as f:
     heatmap_dataset = f["heatmap"]
