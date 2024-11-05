@@ -70,9 +70,8 @@ def load_tile(level, x, y):
 
     # Convert region to numpy and overlay heatmap
     overlay_image = get_heatmap_overlay(np.array(region), heatmap_image, alpha=alpha)
-    overlay_pil_image = Image.fromarray(overlay_image)
 
-    return overlay_pil_image
+    return overlay_image
 
 
 def save_random_tiles(num_tiles=10, alpha=0.5):
