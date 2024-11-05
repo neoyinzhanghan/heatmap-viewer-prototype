@@ -24,6 +24,9 @@ heatmap_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + "_heatmap.h5")
 with h5py.File(slide_h5_path, "r") as f:
     print(f"Keys in slide h5 file: {list(f.keys())}")
 
+    for i in range(19):
+        print(f"Shape of level {i}: {f[str(i)].shape}")
+
 import sys
 
 sys.exit()
