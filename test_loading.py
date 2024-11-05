@@ -60,19 +60,31 @@ def image_to_jpeg_string(image):
     return buffer.getvalue()
 
 
+def load_tile(level, x, y):
+    """Load and overlay heatmap tile with region tile."""
+    alpha = 0.5
+
+    # Retrieve the tile region from the slide
+    region = retrieve_tile_h5(slide_h5_path, level, x, y)
+    heatmap_image = heatmap_tile_loader.get_heatmap_image(level, x, y)
+
+    # Convert region to numpy and overlay heatmap
+    overlay_image = get_heatmap_overlay(np.array(region), heatmap_image, alpha=alpha)
+    overlay_pil_image = Image.fromarray(overlay_image)
+
+    return overlay_pil_image
+
+
 def save_random_tiles(num_tiles=10, alpha=0.5):
     with h5py.File(slide_h5_path, "r") as f:
         for _ in tqdm(range(num_tiles)):
             level = random.randint(0, 18)
             row = random.randint(0, f[str(level)].shape[0] - 1)
             col = random.randint(0, f[str(level)].shape[1] - 1)
-            region = retrieve_tile_h5(slide_h5_path, level, row, col)
-            heatmap_image = heatmap_tile_loader.get_heatmap_image(level, row, col)
-            overlay_image = get_heatmap_overlay(
-                np.array(region), heatmap_image, alpha=alpha
-            )
-            overlay_image.save(
-                os.path.join(OUTPUT_DIR, f"tile_{level}_{row}_{col}.jpg"), format="JPEG"
+            tile = load_tile(level, row, col)
+
+            tile.save(
+                os.path.join(OUTPUT_DIR, f"tile_level{level}_row{row}_col{col}.png")
             )
 
 
