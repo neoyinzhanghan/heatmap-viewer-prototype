@@ -65,34 +65,19 @@ def image_to_jpeg_string(image):
 
 
 def save_random_tiles(num_tiles=10, alpha=0.5):
-    """Randomly retrieve tiles and save them with heatmap overlay for visual debugging."""
-    levels = [0, 1, 2]  # Example levels, adjust based on your dataset
-    max_row, max_col = 10, 10  # Example max values, adjust based on your dataset
-
-    for i in tqdm(range(num_tiles), desc="Saving tiles"):
-        # Randomly choose level, row, and column
-        level = random.choice(levels)
-        row = random.randint(0, max_row)
-        col = random.randint(0, max_col)
-
-        try:
-            # Retrieve the region tile from the slide
+    with h5py.File(slide_h5_path, "r") as f:
+        for _ in tqdm(range(num_tiles)):
+            level = random.randint(0, 18)
+            row = random.randint(0, f[str(level)].shape[0] - 1)
+            col = random.randint(0, f[str(level)].shape[1] - 1)
             region = retrieve_tile_h5(slide_h5_path, level, row, col)
             heatmap_image = heatmap_tile_loader.get_heatmap_image(level, row, col)
-
-            # Convert region to numpy and overlay heatmap
             overlay_image = get_heatmap_overlay(
                 np.array(region), heatmap_image, alpha=alpha
             )
-            overlay_pil_image = Image.fromarray(overlay_image)
-
-            # Save the overlay image to the test_tiles directory
-            file_path = os.path.join(OUTPUT_DIR, f"tile_{level}_{row}_{col}.png")
-            overlay_pil_image.save(file_path)
-            print(f"Saved tile at level {level}, row {row}, col {col} to {file_path}")
-
-        except Exception as e:
-            print(f"Error processing tile at level {level}, row {row}, col {col}: {e}")
+            overlay_image.save(
+                os.path.join(OUTPUT_DIR, f"tile_{level}_{row}_{col}.jpg"), format="JPEG"
+            )
 
 
 if __name__ == "__main__":
