@@ -1,4 +1,5 @@
 import os
+import time
 import boto3
 from dotenv import load_dotenv
 from dzsave import dzsave
@@ -99,6 +100,8 @@ def upload_file_to_s3(local_path, s3_bucket, s3_key):
     print(f"Uploaded {local_path} to s3://{s3_bucket}/{s3_key}")
 
 
+startime = time.time()
+
 # Upload the .dzi file
 dzi_s3_key = f"{s3_subfolder}/{folder_name}.dzi"
 upload_file_to_s3(dzi_file_path, s3_bucket_name, dzi_s3_key)
@@ -112,3 +115,7 @@ for root, _, files in os.walk(tiles_folder_path):
         upload_file_to_s3(local_file_path, s3_bucket_name, s3_key)
 
 print("All files uploaded successfully.")
+
+time_taken = time.time() - startime
+
+print(f"Time taken: {time_taken} seconds")
