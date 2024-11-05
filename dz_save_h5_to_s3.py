@@ -9,7 +9,9 @@ from tqdm import tqdm
 load_dotenv()
 
 # Paths and parameters for DZI creation
-slide_path = "/media/hdd3/neo/BMA_AML/H23-9432;S14;MSK1 - 2023-12-12 04.55.10.ndpi"
+slide_path = (
+    "/media/hdd3/neo/tmp_slide_dir/H19-5749;S10;MSKI - 2023-05-24 21.38.53.ndpi"
+)
 tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide.h5"
 s3_bucket_name = os.getenv("S3_BUCKET_NAME")
 s3_subfolder = "wsi-and-heatmaps"
