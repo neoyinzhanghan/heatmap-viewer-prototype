@@ -1,123 +1,249 @@
-import io
-import os
-import h5py
-import base64
-import numpy as np
-from PIL import Image
-from flask import Flask, send_file, abort, Response, request, render_template_string
+from flask import (
+    Flask,
+    send_file,
+    request,
+    jsonify,
+    render_template_string,
+    make_response,
+    abort,
+    Response,
+)
 from flask_cors import CORS
-from read_heatmap import HeatMapTileLoader, get_heatmap_overlay
+from PIL import Image
+import h5py
+import io
+import numpy as np
+import os
+import base64
+from compute_heatmap import HeatMapTileMaker
+from utils import smooth_function
 
 app = Flask(__name__)
 CORS(app)
 
-# Root directory where slides are stored
+# Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
+TILE_SIZE = 512
+DEFAULT_ALPHA = 0.5
 
-slide_name = "bma_test_slide"
-slide_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + ".h5")
-heatmap_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + "_heatmap.h5")
+# Global variables
+current_slide_name = None
+heatmap_tile_maker = None
+alpha = DEFAULT_ALPHA
 
-# Load heatmap data with dimension check
-with h5py.File(heatmap_h5_path, "r") as f:
-    heatmap_dataset = f["heatmap"]
-    print(f"Heatmap dataset shape: {heatmap_dataset.shape}")
-
-    # make sure heatmap dataset is a numpy array
-    heatmap = np.array(heatmap_dataset) 
-    # Create heatmap tile loader
-    heatmap_tile_loader = HeatMapTileLoader(np_heatmap=heatmap)
-    heatmap_tile_loader.compute_heatmap()
-
+def get_file_paths(slide_name):
+    """Generate paths for slide and heatmap H5 files."""
+    slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide_name}.h5")
+    heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide_name}_heatmap.h5")
+    return slide_h5_path, heatmap_h5_path
 
 def retrieve_tile_h5(h5_path, level, row, col):
-    """Retrieve the tile from an HDF5 file given level, row, and col."""
+    """Retrieve tile from an HDF5 file."""
     with h5py.File(h5_path, "r") as f:
         try:
             jpeg_string = f[str(level)][row, col]
             jpeg_string = base64.b64decode(jpeg_string)
             image = Image.open(io.BytesIO(jpeg_string))
-            image.load()  # Ensure the image is loaded fully
+            image.load()
             return image
         except Exception as e:
             print(f"Error retrieving tile at level {level}, row {row}, col {col}: {e}")
             raise e
 
+def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
+    """Create overlay of region and heatmap."""
+    heatmap_image = np.array(heatmap_image.convert("RGB"))
+    if region.shape[2] != 3:
+        raise ValueError("Region image must be in RGB format with 3 channels")
+    
+    region = region.astype(np.float32) / 255.0
+    heatmap_image = heatmap_image.astype(np.float32) / 255.0
+    overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
+    overlay_image_np = np.clip(overlay_image_np, 0, 1)
+    overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
+    return overlay_image_np
 
 def image_to_jpeg_string(image):
-    """Convert a PIL image to JPEG byte string."""
+    """Convert PIL image to JPEG byte string."""
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
     return buffer.getvalue()
 
-
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
-def load_tile(level, x, y):
-    """Load and overlay heatmap tile with region tile."""
-    alpha = float(request.args.get("alpha", 0.5))
+def get_tile(level, x, y):
+    global current_slide_name, heatmap_tile_maker, alpha
+    
+    if not current_slide_name:
+        return "No slide loaded", 400
 
     try:
-        # Retrieve the tile region from the slide
+        # Get file paths
+        slide_h5_path, _ = get_file_paths(current_slide_name)
+        
+        # Get the base tile
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
-        heatmap_image = heatmap_tile_loader.get_heatmap_image(level, x, y)
-
-        # Convert region to numpy and overlay heatmap
-        overlay_image = get_heatmap_overlay(
-            np.array(region), heatmap_image, alpha=alpha
-        )
-        overlay_pil_image = Image.fromarray(overlay_image)
-
-        # Save to buffer and return as PNG
+        
+        # Get heatmap overlay
+        heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
+        
+        # Create overlay
+        region_np = np.array(region)
+        overlay_image = get_heatmap_overlay(region_np, heatmap_image, alpha=alpha)
+        overlay_pil = Image.fromarray(overlay_image)
+        
+        # Prepare response
         img_io = io.BytesIO()
-        overlay_pil_image.save(img_io, "PNG")
+        overlay_pil.save(img_io, format="JPEG", quality=90)
         img_io.seek(0)
-        return Response(img_io, mimetype="image/png")
-
+        
+        response = make_response(send_file(img_io, mimetype="image/jpeg"))
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+        
     except Exception as e:
-        print(f"Error processing tile at level {level}, x {x}, y {y}: {e}")
-        return f"Error processing tile: {e}", 500
+        print(f"Error serving tile: {e}")
+        return f"Tile not found: {str(e)}", 404
 
+@app.route("/change_slide/<slide_name>", methods=["POST"])
+def change_slide(slide_name):
+    global current_slide_name, heatmap_tile_maker
+    
+    slide_h5_path, heatmap_h5_path = get_file_paths(slide_name)
+    
+    if not os.path.exists(slide_h5_path):
+        return jsonify(success=False, error="Slide file not found"), 400
+        
+    try:
+        # Load heatmap data
+        with h5py.File(heatmap_h5_path, "r") as f:
+            heatmap_dataset = f["heatmap"]
+            heatmap = np.array(heatmap_dataset)
+        
+        # Initialize heatmap tile maker
+        heatmap_tile_maker = HeatMapTileMaker(heatmap=heatmap, tile_size=TILE_SIZE)
+        heatmap_tile_maker.compute_heatmap()
+        
+        current_slide_name = slide_name
+        return jsonify(success=True)
+        
+    except Exception as e:
+        print(f"Error loading slide: {e}")
+        return jsonify(success=False, error=str(e)), 500
 
-@app.route("/viewer")
-def viewer():
-    """Serve a basic HTML page with OpenSeadragon viewer for testing."""
-    html_template = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>WSI Viewer</title>
-        <script src="https://openseadragon.github.io/openseadragon/openseadragon.min.js"></script>
-    </head>
-    <body>
-        <h1>WSI Viewer with OpenSeadragon</h1>
-        <div id="openseadragon-viewer" style="width: 800px; height: 600px;"></div>
+@app.route("/set_alpha", methods=["POST"])
+def set_alpha():
+    global alpha
+    alpha = float(request.json.get("alpha", DEFAULT_ALPHA))
+    return jsonify(success=True)
 
-        <script>
-            const viewer = OpenSeadragon({
-                id: "openseadragon-viewer",
-                prefixUrl: "https://openseadragon.github.io/openseadragon/images/",
-                tileSources: {
-                    type: 'image',
-                    tileUrl: function(level, x, y) {
-                        // Construct tile URL pointing to the Flask server
-                        return `/tile/${level}/${x}/${y}/?alpha=0.5`;
-                    },
-                    width: 10000,   // Set width of the full-resolution image in pixels
-                    height: 10000,  // Set height of the full-resolution image in pixels
-                    tileSize: 512,  // Tile size (match with Flask server's tile size)
-                    minLevel: 0,    // Minimum zoom level
-                    maxLevel: 5     // Maximum zoom level (adjust based on your data)
-                },
-                showNavigator: true,
-            });
-        </script>
-    </body>
-    </html>
-    """
-    return render_template_string(html_template)
+@app.route("/")
+def index():
+    global current_slide_name
+    
+    if not current_slide_name:
+        return "No slide loaded", 400
+        
+    # Get dimensions from H5 file
+    slide_h5_path, _ = get_file_paths(current_slide_name)
+    with h5py.File(slide_h5_path, "r") as f:
+        max_level = len(f.keys()) - 1  # Exclude heatmap key if present
+        # Assuming level 0 contains the dimensions somehow - adjust as needed
+        dimensions = f["0"].shape  # This might need adjustment based on H5 structure
+    
+    return render_template_string(
+        """
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/openseadragon.min.js"></script>
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    .container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        padding: 20px;
+                    }
+                    #openseadragon1 {
+                        width: 800px;
+                        height: 600px;
+                        margin-bottom: 20px;
+                    }
+                    #alpha-slider { width: 800px; }
+                    #apply-button {
+                        margin-top: 10px;
+                        padding: 5px 15px;
+                        font-size: 16px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div id="openseadragon1"></div>
+                    <label for="alpha-slider">Adjust Overlay Transparency:</label>
+                    <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5">
+                    <button id="apply-button" onclick="applyNewTransparency()">Apply New Transparency</button>
+                </div>
+                <script type="text/javascript">
+                    var viewer;
 
+                    function initializeViewer() {
+                        if (viewer) {
+                            viewer.destroy();
+                        }
+
+                        viewer = OpenSeadragon({
+                            id: "openseadragon1",
+                            prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/images/",
+                            tileSources: {
+                                height: {{ height_value }},
+                                width: {{ width_value }},
+                                tileSize: {{ tile_size }},
+                                minLevel: 0,
+                                maxLevel: {{ max_level }},
+                                getTileUrl: function(level, x, y) {
+                                    return "/tile/" + level + "/" + x + "/" + y + "/?v=" + new Date().getTime();
+                                }
+                            },
+                            showNavigator: true,
+                            preserveViewport: true,
+                            immediateRender: true,
+                            useCanvas: true,
+                            tileCache: null
+                        });
+                    }
+
+                    function applyNewTransparency() {
+                        var alphaValue = document.getElementById("alpha-slider").value;
+                        fetch('/set_alpha', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ alpha: alphaValue }),
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                initializeViewer();
+                            }
+                        });
+                    }
+
+                    window.onload = function() {
+                        initializeViewer();
+                    }
+                </script>
+            </body>
+        </html>
+        """,
+        height_value=dimensions[0],
+        width_value=dimensions[1],
+        max_level=max_level,
+        tile_size=TILE_SIZE,
+    )
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)
