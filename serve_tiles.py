@@ -26,7 +26,7 @@ with h5py.File(heatmap_h5_path, "r") as f:
     print(f"Heatmap dataset shape: {heatmap_dataset.shape}")
 
     # make sure heatmap dataset is a numpy array
-    heatmap = np.array(heatmap_dataset)
+    heatmap = np.array(heatmap_dataset) 
     # Create heatmap tile loader
     heatmap_tile_loader = HeatMapTileLoader(np_heatmap=heatmap)
     heatmap_tile_loader.compute_heatmap()
