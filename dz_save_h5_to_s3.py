@@ -10,9 +10,7 @@ from tqdm import tqdm
 load_dotenv()
 
 # Paths and parameters for DZI creation
-slide_path = (
-    "/media/hdd3/neo/BMA_AML/H23-9432;S14;MSK1 - 2023-12-12 04.55.10.jpg"
-)
+slide_path = "/media/hdd3/neo/BMA_AML/H23-9432;S14;MSK1 - 2023-12-12 04.55.10.ndpi"
 tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide.h5"
 heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
 
