@@ -132,11 +132,11 @@ class HeatMapTileMaker:
                 if scores[i] > largest_score:
                     largest_score = scores[i]
 
-        self.dz_heatmap_dict[self.slide.level_count - 1] = self.heatmap
+        self.dz_heatmap_dict[18] = self.heatmap
 
         current_heatmap = self.heatmap
 
-        for level in range(self.slide.level_count - 2, -1, -1):
+        for level in range(18-1, -1, -1):
             current_heatmap = dyadic_average_downsample_heatmap(current_heatmap)
             self.dz_heatmap_dict[level] = current_heatmap
 
@@ -188,7 +188,7 @@ class HeatMapTileMaker:
         - np.ndarray: The heatmap overlay as a NumPy array.
         """
 
-        openslide_level = self.slide.level_count - 1 - level
+        openslide_level = 18 - level
         heatmap_grid_size = 512 // (2 ** (openslide_level))
 
         heatmap_overlay_score = np.zeros((512, 512))
@@ -200,7 +200,7 @@ class HeatMapTileMaker:
                     j * heatmap_grid_size : (j + 1) * heatmap_grid_size,
                     i * heatmap_grid_size : (i + 1) * heatmap_grid_size,
                 ] = self.get_heatmap_values(
-                    self.slide.level_count - 1,
+                    18,
                     x * 2 ** (openslide_level) + i,
                     y * 2 ** (openslide_level) + j,
                 )
@@ -208,11 +208,11 @@ class HeatMapTileMaker:
         return generate_red_green_heatmap(heatmap_overlay_score)
 
     def save_heatmap_to_h5(self, heatmap_h5_save_path):
-        # save the self.dz_heatmap_dict[self.slide.level_count - 1] to the h5 file with a key "heatmap"
+        # save the self.dz_heatmap_dict[18] to the h5 file with a key "heatmap"
 
         with h5py.File(heatmap_h5_save_path, "w") as f:
             f.create_dataset(
-                "heatmap", data=self.dz_heatmap_dict[self.slide.level_count - 1]
+                "heatmap", data=self.dz_heatmap_dict[18]
             )
 
         print(f"Saved heatmap to {heatmap_h5_save_path}")
@@ -222,6 +222,91 @@ def create_heatmap_to_h5(slide_path, heatmap_h5_save_path):
     heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=512)
     heatmap_tile_maker.compute_heatmap()
     heatmap_tile_maker.save_heatmap_to_h5(heatmap_h5_save_path)
+
+
+class HeatMapTileLoader:
+    """ """
+
+    def __init__(self, np_heatmap, tile_size=512):
+        self.tile_size = tile_size
+        # shape of the heatmap should be slide_width_level_0 // 512, slide_height_level_0 // 512, we start by initializing it to zeros numpy array
+        self.heatmap = np_heatmap
+        self.dz_heatmap_dict = {}
+
+    def get_heatmap_values(self, level, x, y):
+        """
+        Get the heatmap values at a specific level and location.
+
+        Parameters:
+        - level (int): The level of the heatmap.
+        - x (int): The x-coordinate of the location.
+        - y (int): The y-coordinate of the location.
+
+        Returns:
+        - float: The heatmap value at the specified location.
+        """
+
+        try:
+            return float(
+                self.dz_heatmap_dict[level][x, y]
+            )  # if index out of bounds, return 0
+        except IndexError:
+            return float(0)
+
+    def get_gaussian_heatmap_values(self, x, y):
+        """
+        Get the heatmap values at a specific level and location using a gaussian kernel centered at the center of the slide, with sigma = 1/3 of the slide height.
+        """
+        slide_width, slide_height = self.slide.dimensions
+        center_x = 2 * (slide_width // self.tile_size) // 3
+        center_y = 1 * (slide_height // self.tile_size) // 3
+        sigma = (slide_height // self.tile_size) / 3
+        heatmap_values = np.exp(
+            -((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma**2)
+        )
+        return heatmap_values
+
+    def get_heatmap_image(self, level, x, y):
+        """
+        Get the heatmap overlay for a specific level and location.
+
+        Parameters:
+        - level (int): The level of the heatmap.
+        - x (int): The x-coordinate of the location.
+        - y (int): The y-coordinate of the location.
+
+        Returns:
+        - np.ndarray: The heatmap overlay as a NumPy array.
+        """
+
+        openslide_level = 18 - level
+        heatmap_grid_size = 512 // (2 ** (openslide_level))
+
+        heatmap_overlay_score = np.zeros((512, 512))
+
+        for i in range(2 ** (openslide_level)):
+            for j in range(2 ** (openslide_level)):
+                # heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*(2**(openslide_level)) + i, y*(2**(openslide_level)) + j)
+                heatmap_overlay_score[
+                    j * heatmap_grid_size : (j + 1) * heatmap_grid_size,
+                    i * heatmap_grid_size : (i + 1) * heatmap_grid_size,
+                ] = self.get_heatmap_values(
+                    18,
+                    x * 2 ** (openslide_level) + i,
+                    y * 2 ** (openslide_level) + j,
+                )
+
+        return generate_red_green_heatmap(heatmap_overlay_score)
+
+    def save_heatmap_to_h5(self, heatmap_h5_save_path):
+        # save the self.dz_heatmap_dict[18] to the h5 file with a key "heatmap"
+
+        with h5py.File(heatmap_h5_save_path, "w") as f:
+            f.create_dataset(
+                "heatmap", data=self.dz_heatmap_dict[18]
+            )
+
+        print(f"Saved heatmap to {heatmap_h5_save_path}")
 
 
 if __name__ == "__main__":
