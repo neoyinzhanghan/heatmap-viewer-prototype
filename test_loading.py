@@ -81,11 +81,15 @@ def save_random_tiles(num_tiles=10, alpha=0.5):
             level = random.randint(0, 18)
             row = random.randint(0, f[str(level)].shape[0] - 1)
             col = random.randint(0, f[str(level)].shape[1] - 1)
-            tile = load_tile(level, row, col)
 
+            print(f"Saving tile at level {level}, row {row}, col {col}")
+            print("Loading tile...")
+            tile = load_tile(level, row, col)
+            print("Saving tile...")
             tile.save(
                 os.path.join(OUTPUT_DIR, f"tile_level{level}_row{row}_col{col}.png")
             )
+            print("Tile saved!")
 
 
 if __name__ == "__main__":
