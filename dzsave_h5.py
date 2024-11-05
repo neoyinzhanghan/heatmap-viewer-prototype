@@ -370,7 +370,7 @@ def get_depth_from_0_to_11(wsi_path, h5_path, tile_size=256):
 def dzsave_h5(
     wsi_path,
     h5_path,
-    tile_size=256,
+    tile_size=512,
     num_cpus=32,
     region_cropping_batch_size=256,
 ):
@@ -426,7 +426,7 @@ if __name__ == "__main__":
     dzsave_h5(
         wsi_path=slide_path,
         h5_path=tmp_h5_save_path,
-        tile_size=256,
+        tile_size=512,
         num_cpus=32,
         region_cropping_batch_size=256,
     )
