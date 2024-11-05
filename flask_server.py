@@ -1,10 +1,4 @@
-from flask import (
-    Flask,
-    send_file,
-    request,
-    jsonify,
-    make_response
-)
+from flask import Flask, send_file, request, jsonify, make_response
 from flask_cors import CORS
 from PIL import Image
 import h5py
@@ -15,7 +9,7 @@ import base64
 from read_heatmap import HeatMapTileLoader  # Ensure this module is accessible
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allows requests from any origin
 
 # Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
