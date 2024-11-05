@@ -136,7 +136,7 @@ class HeatMapTileMaker:
 
         current_heatmap = self.heatmap
 
-        for level in range(18-1, -1, -1):
+        for level in range(18 - 1, -1, -1):
             current_heatmap = dyadic_average_downsample_heatmap(current_heatmap)
             self.dz_heatmap_dict[level] = current_heatmap
 
@@ -211,9 +211,7 @@ class HeatMapTileMaker:
         # save the self.dz_heatmap_dict[18] to the h5 file with a key "heatmap"
 
         with h5py.File(heatmap_h5_save_path, "w") as f:
-            f.create_dataset(
-                "heatmap", data=self.dz_heatmap_dict[18]
-            )
+            f.create_dataset("heatmap", data=self.dz_heatmap_dict[18])
 
         print(f"Saved heatmap to {heatmap_h5_save_path}")
 
@@ -253,19 +251,6 @@ class HeatMapTileLoader:
         except IndexError:
             return float(0)
 
-    def get_gaussian_heatmap_values(self, x, y):
-        """
-        Get the heatmap values at a specific level and location using a gaussian kernel centered at the center of the slide, with sigma = 1/3 of the slide height.
-        """
-        slide_width, slide_height = self.slide.dimensions
-        center_x = 2 * (slide_width // self.tile_size) // 3
-        center_y = 1 * (slide_height // self.tile_size) // 3
-        sigma = (slide_height // self.tile_size) / 3
-        heatmap_values = np.exp(
-            -((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma**2)
-        )
-        return heatmap_values
-
     def get_heatmap_image(self, level, x, y):
         """
         Get the heatmap overlay for a specific level and location.
@@ -302,9 +287,7 @@ class HeatMapTileLoader:
         # save the self.dz_heatmap_dict[18] to the h5 file with a key "heatmap"
 
         with h5py.File(heatmap_h5_save_path, "w") as f:
-            f.create_dataset(
-                "heatmap", data=self.dz_heatmap_dict[18]
-            )
+            f.create_dataset("heatmap", data=self.dz_heatmap_dict[18])
 
         print(f"Saved heatmap to {heatmap_h5_save_path}")
 
@@ -315,3 +298,14 @@ if __name__ == "__main__":
     )
     heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
     create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
+
+def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
+    heatmap_image = np.array(heatmap_image.convert("RGB"))
+    if region.shape[2] != 3:
+        raise ValueError("Region image must be in RGB format with 3 channels")
+    region = region.astype(np.float32) / 255.0
+    heatmap_image = heatmap_image.astype(np.float32) / 255.0
+    overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
+    overlay_image_np = np.clip(overlay_image_np, 0, 1)
+    overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
+    return Image.fromarray(overlay_image_np)
