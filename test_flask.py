@@ -1,53 +1,38 @@
-import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
+import requests
 
-# Define the URL of your Flask server
-BASE_URL = "http://localhost:8080"  # Update if necessary
-VIEWER_ENDPOINT = "/tile/1/0/0/?alpha=0.5"  # Example tile URL for testing
+# Define the base URL for your local Flask server
+BASE_URL = "http://127.0.0.1:8080"
+TILE_ENDPOINT = "/tile/{level}/{x}/{y}/"
+TEST_LEVEL = 1
+TEST_X = 0
+TEST_Y = 0
+ALPHA_VALUE = 0.5  # Transparency level for overlay
 
-# Set up Chrome options (you can also use Firefox or another browser)
-chrome_options = Options()
-chrome_options.add_argument("--headless")  # Run in headless mode for testing
-
-# Path to ChromeDriver (change this if necessary)
-service = Service(
-    "path/to/chromedriver"
-)  # Ensure the driver is in your PATH or specify the full path
-
-
-def test_wsi_viewer_tile_loading():
-    # Initialize the WebDriver
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-
+def test_wsi_tile_loading(level, x, y, alpha):
+    # Construct the full URL for the tile request
+    url = f"{BASE_URL}{TILE_ENDPOINT.format(level=level, x=x, y=y)}"
+    params = {"alpha": alpha}
+    
     try:
-        # Navigate to the WSI viewer tile URL
-        driver.get(f"{BASE_URL}{VIEWER_ENDPOINT}")
-
-        # Wait for the image tile to load
-        wait = WebDriverWait(driver, 10)
-        tile_image = wait.until(EC.presence_of_element_located((By.TAG_NAME, "img")))
-
-        # Check if the image source is loaded
-        img_src = tile_image.get_attribute("src")
-        if img_src:
+        # Send a GET request to the server
+        response = requests.get(url, params=params)
+        
+        # Check if the response status code is 200 (OK)
+        if response.status_code == 200:
             print("Test passed: Tile image loaded successfully.")
+            
+            # Save the response content as an image file to verify output
+            output_filename = f"test_output_level_{level}_x_{x}_y_{y}_alpha_{alpha}.png"
+            with open(output_filename, "wb") as f:
+                f.write(response.content)
+            print(f"Image saved as '{output_filename}'")
         else:
-            print("Test failed: Tile image did not load.")
-
-    except Exception as e:
-        print(f"Error during test: {e}")
-
-    finally:
-        # Close the browser
-        driver.quit()
-
+            print(f"Test failed: Status code {response.status_code}, Message: {response.text}")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error during test request: {e}")
 
 # Run the test
 if __name__ == "__main__":
-    print("Running WSI viewer tile loading test...")
-    test_wsi_viewer_tile_loading()
+    print("Testing WSI tile loading...")
+    test_wsi_tile_loading(TEST_LEVEL, TEST_X, TEST_Y, ALPHA_VALUE)
