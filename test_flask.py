@@ -15,7 +15,7 @@ import io
 import numpy as np
 import os
 import base64
-from compute_heatmap import HeatMapTileMaker
+from read_heatmap import HeatMapTileLoader
 from utils import smooth_function
 
 app = Flask(__name__)
@@ -122,7 +122,7 @@ def change_slide(slide_name):
             heatmap = np.array(heatmap_dataset)
         
         # Initialize heatmap tile maker
-        heatmap_tile_maker = HeatMapTileMaker(heatmap=heatmap, tile_size=TILE_SIZE)
+        heatmap_tile_maker = HeatMapTileLoader(heatmap=heatmap, tile_size=TILE_SIZE)
         heatmap_tile_maker.compute_heatmap()
         
         current_slide_name = slide_name
