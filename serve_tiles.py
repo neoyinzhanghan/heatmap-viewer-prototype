@@ -14,6 +14,7 @@ CORS(app)
 # Root directory where slides are stored
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
 
+
 def retrieve_tile_h5(h5_path, level, row, col):
     """Retrieve the tile from an HDF5 file given level, row, and col."""
     with h5py.File(h5_path, "r") as f:
@@ -27,11 +28,13 @@ def retrieve_tile_h5(h5_path, level, row, col):
             print(f"Error retrieving tile at level {level}, row {row}, col {col}: {e}")
             raise e
 
+
 def image_to_jpeg_string(image):
     """Convert a PIL image to JPEG byte string."""
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
     return buffer.getvalue()
+
 
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def load_tile(level, x, y, slide_name="bma_test_slide"):
@@ -41,17 +44,31 @@ def load_tile(level, x, y, slide_name="bma_test_slide"):
     heatmap_h5_path = os.path.join(S3_MOUNT_PATH, slide_name + "_heatmap.h5")
 
     try:
-        # Load heatmap tile
+        # Load heatmap data with dimension check
         with h5py.File(heatmap_h5_path, "r") as f:
-            heatmap = f["heatmap"][level, x, y]
+            heatmap_dataset = f["heatmap"]
+            print(f"Heatmap dataset shape: {heatmap_dataset.shape}")
+
+            # Adjust indexing based on the number of dimensions
+            if len(heatmap_dataset.shape) == 3:
+                heatmap = heatmap_dataset[level, x, y]
+            elif len(heatmap_dataset.shape) == 2:
+                # Use only two indices if the dataset is 2D
+                heatmap = heatmap_dataset[x, y]
+            else:
+                raise ValueError("Unexpected heatmap dimensions")
+
+            # Create heatmap tile loader
             heatmap_tile_loader = HeatMapTileLoader(np_heatmap=heatmap)
 
-        # Retrieve the tile region
+        # Retrieve the tile region from the slide
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
         heatmap_image = heatmap_tile_loader.get_heatmap_image(level, x, y)
-        
-        # Convert to numpy, overlay heatmap, and return image
-        overlay_image = get_heatmap_overlay(np.array(region), heatmap_image, alpha=alpha)
+
+        # Convert region to numpy and overlay heatmap
+        overlay_image = get_heatmap_overlay(
+            np.array(region), heatmap_image, alpha=alpha
+        )
         overlay_pil_image = Image.fromarray(overlay_image)
 
         # Save to buffer and return as PNG
@@ -64,6 +81,7 @@ def load_tile(level, x, y, slide_name="bma_test_slide"):
         print(f"Error processing tile at level {level}, x {x}, y {y}: {e}")
         return f"Error processing tile: {e}", 500
 
+
 @app.route("/tiles/<slide_name>/<int:level>/<int:x>/<int:y>.jpg")
 def serve_tile(slide_name, level, x, y):
     """Serve a tile as a JPEG image."""
@@ -71,13 +89,16 @@ def serve_tile(slide_name, level, x, y):
     try:
         tile_image = retrieve_tile_h5(slide_h5_path, level, x, y)
         jpeg_bytes = image_to_jpeg_string(tile_image)
-        
+
         img_io = io.BytesIO(jpeg_bytes)
         img_io.seek(0)
         return send_file(img_io, mimetype="image/jpeg")
     except Exception as e:
-        print(f"Error serving tile for {slide_name} at level {level}, x {x}, y {y}: {e}")
+        print(
+            f"Error serving tile for {slide_name} at level {level}, x {x}, y {y}: {e}"
+        )
         abort(404)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)
