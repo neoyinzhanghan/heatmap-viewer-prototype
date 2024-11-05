@@ -40,6 +40,7 @@ with h5py.File(heatmap_h5_path, "r") as f:
     heatmap_tile_maker = HeatMapTileLoader(np_heatmap=heatmap, tile_size=TILE_SIZE)
     heatmap_tile_maker.compute_heatmap()
 
+
 def retrieve_tile_h5(h5_path, level, row, col):
     """Retrieve tile from an HDF5 file."""
     with h5py.File(h5_path, "r") as f:
@@ -53,12 +54,13 @@ def retrieve_tile_h5(h5_path, level, row, col):
             print(f"Error retrieving tile at level {level}, row {row}, col {col}: {e}")
             raise e
 
+
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """Create overlay of region and heatmap."""
     heatmap_image = np.array(heatmap_image.convert("RGB"))
     if region.shape[2] != 3:
         raise ValueError("Region image must be in RGB format with 3 channels")
-    
+
     region = region.astype(np.float32) / 255.0
     heatmap_image = heatmap_image.astype(np.float32) / 255.0
     overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
@@ -66,34 +68,38 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
     return overlay_image_np
 
+
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(level, x, y):
     try:
         # Get the base tile
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
-        
+
         # Get heatmap overlay
         heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
-        
+
         # Create overlay
         region_np = np.array(region)
         overlay_image = get_heatmap_overlay(region_np, heatmap_image, alpha=alpha)
         overlay_pil = Image.fromarray(overlay_image)
-        
+
         # Prepare response
         img_io = io.BytesIO()
         overlay_pil.save(img_io, format="JPEG", quality=90)
         img_io.seek(0)
-        
+
         response = make_response(send_file(img_io, mimetype="image/jpeg"))
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
         return response
-        
+
     except Exception as e:
         print(f"Error serving tile: {e}")
         return f"Tile not found: {str(e)}", 404
+
 
 @app.route("/set_alpha", methods=["POST"])
 def set_alpha():
@@ -101,15 +107,17 @@ def set_alpha():
     alpha = float(request.json.get("alpha", DEFAULT_ALPHA))
     return jsonify(success=True)
 
+
 @app.route("/")
 def index():
     # Fixed max level
     MAX_LEVEL = 18
-    
-    # Get dimensions from H5 file
+
+    # Get dimensions from H5 file metadata
     with h5py.File(slide_h5_path, "r") as f:
-        dimensions = f["0"].shape
-    
+        height = f.attrs["level_0_height"]
+        width = f.attrs["level_0_width"]
+
     return render_template_string(
         """
         <!DOCTYPE html>
@@ -156,8 +164,8 @@ def index():
                             id: "openseadragon1",
                             prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/2.4.2/images/",
                             tileSources: {
-                                height: {{ height_value }},
-                                width: {{ width_value }},
+                                height: {{ height }},
+                                width: {{ width }},
                                 tileSize: {{ tile_size }},
                                 minLevel: 0,
                                 maxLevel: {{ max_level }},
@@ -197,11 +205,12 @@ def index():
             </body>
         </html>
         """,
-        height_value=dimensions[0],
-        width_value=dimensions[1],
+        height=height,
+        width=width,
         max_level=MAX_LEVEL,
         tile_size=TILE_SIZE,
     )
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
