@@ -3,6 +3,7 @@ import time
 import boto3
 from dotenv import load_dotenv
 from LLRunner.slide_processing.dzsave_h5 import dzsave_h5
+from compute_heatmap import create_heatmap_to_h5
 from tqdm import tqdm
 
 # Load environment variables from .env file
@@ -13,6 +14,8 @@ slide_path = (
     "/media/hdd3/neo/tmp_slide_dir/H19-5749;S10;MSKI - 2023-05-24 21.38.53.ndpi"
 )
 tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide.h5"
+heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
+
 s3_bucket_name = os.getenv("S3_BUCKET_NAME")
 s3_subfolder = "wsi-and-heatmaps"
 
@@ -25,7 +28,9 @@ dzsave_h5(
     region_cropping_batch_size=256,
 )
 
-print("H5 file created successfully.")
+create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
+
+print("H5 file and heatmap created successfully.")
 
 print("Uploading H5 file to S3...")
 start_time = time.time()
@@ -48,6 +53,10 @@ def upload_file_to_s3(local_path, s3_bucket, s3_key):
 h5_s3_key = f"{s3_subfolder}/{os.path.basename(tmp_save_path)}"
 upload_file_to_s3(tmp_save_path, s3_bucket_name, h5_s3_key)
 
+# Upload the heatmap .h5 file to S3 under the specified subfolder
+heatmap_h5_s3_key = f"{s3_subfolder}/{os.path.basename(heatmap_h5_save_path)}"
+upload_file_to_s3(heatmap_h5_save_path, s3_bucket_name, heatmap_h5_s3_key)
+
 end_time = time.time()
-print("H5 file uploaded successfully.")
+print("H5 file and heatmap uploaded successfully.")
 print(f"Time taken: {end_time - start_time:.2f} seconds.")
