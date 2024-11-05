@@ -3,6 +3,7 @@ import time
 import boto3
 from dotenv import load_dotenv
 from dzsave import dzsave
+from tqdm import tqdm
 
 # Load environment variables from .env file
 load_dotenv()
@@ -107,7 +108,9 @@ dzi_s3_key = f"{s3_subfolder}/{folder_name}.dzi"
 upload_file_to_s3(dzi_file_path, s3_bucket_name, dzi_s3_key)
 
 # Upload all files in the tiles folder
-for root, _, files in os.walk(tiles_folder_path):
+for root, _, files in tqdm(
+    os.walk(tiles_folder_path), desc="Uploading DZI Tiles Files"
+):
     for file in files:
         local_file_path = os.path.join(root, file)
         relative_path = os.path.relpath(local_file_path, tmp_save_dir)
