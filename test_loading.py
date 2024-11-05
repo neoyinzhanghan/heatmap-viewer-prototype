@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 import random
 from read_heatmap import HeatMapTileLoader, get_heatmap_overlay
+from tqdm import tqdm
 
 # Root directory where slides are stored
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
@@ -57,7 +58,7 @@ def save_random_tiles(num_tiles=10, alpha=0.5):
     levels = [0, 1, 2]  # Example levels, adjust based on your dataset
     max_row, max_col = 10, 10  # Example max values, adjust based on your dataset
 
-    for i in range(num_tiles):
+    for i in tqdm(range(num_tiles), desc="Saving tiles"):
         # Randomly choose level, row, and column
         level = random.choice(levels)
         row = random.randint(0, max_row)
