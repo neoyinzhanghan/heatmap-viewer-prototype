@@ -2,7 +2,7 @@ import os
 import time
 import boto3
 from dotenv import load_dotenv
-from dzsave_h5 import dzsave_h5
+from LLRunner.slide_processing.dzsave_h5 import dzsave_h5
 from tqdm import tqdm
 
 # Load environment variables from .env file
