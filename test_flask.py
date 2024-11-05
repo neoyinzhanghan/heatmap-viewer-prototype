@@ -35,6 +35,11 @@ with h5py.File(slide_h5_path, "r") as f:
     height = f["level_0_height"]
     width = f["level_0_width"]
 
+    # now extract the float values
+    height = height[()]
+
+    # now extract the float values
+    width = width[()]
     print(height, width)
 
 import sys
