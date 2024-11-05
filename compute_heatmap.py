@@ -1,3 +1,4 @@
+import h5py
 import openslide
 import numpy as np
 from utils import smooth_function
@@ -16,10 +17,10 @@ num_workers = 32
 def generate_red_green_heatmap(matrix):
     """
     Generates a heatmap where values closer to 0 are red and closer to 1 are green.
-    
+
     Parameters:
     - matrix (numpy.ndarray): A 2D array with values between 0 and 1.
-    
+
     Returns:
     - heatmap_pil (PIL.Image.Image): The heatmap image as a PIL Image object.
     """
@@ -34,10 +35,10 @@ def generate_red_green_heatmap(matrix):
 
     # Remove the alpha channel from the resulting image (if it exists)
     heatmap_image = (heatmap_image[:, :, :3] * 255).astype(np.uint8)
-    
+
     # Convert the NumPy array to a PIL Image
     heatmap_pil = Image.fromarray(heatmap_image)
-    
+
     return heatmap_pil
 
 
@@ -47,13 +48,14 @@ def custom_collate_fn(batch):
     pil_images, coordinates = zip(*batch)
     return list(pil_images), list(coordinates)
 
+
 def dyadic_average_downsample_heatmap(float_matrix):
     """
     Downsample the heatmap by averaging the values in 2x2 blocks.
-    
+
     Parameters:
     - float_matrix (np.ndarray): The heatmap as a float numpy array.
-    
+
     Returns:
     - np.ndarray: The downsampled heatmap.
     """
@@ -67,18 +69,19 @@ def dyadic_average_downsample_heatmap(float_matrix):
     if width % 2 != 0:
         float_matrix = float_matrix[:, :-1]
         width -= 1
-    
+
     # Compute the new dimensions after downsampling
     new_height = height // 2
     new_width = width // 2
-    
+
     # Reshape the input matrix to a 4D tensor
     reshaped_matrix = float_matrix.reshape(new_height, 2, new_width, 2)
-    
+
     # Average the values in each 2x2 block
     downsampled_matrix = reshaped_matrix.mean(axis=(1, 3))
-    
+
     return downsampled_matrix
+
 
 class HeatMapTileMaker:
     """
@@ -92,17 +95,25 @@ class HeatMapTileMaker:
     - model: the classifier model to predict the heatmap
 
     """
+
     def __init__(self, slide_path, tile_size=512):
         self.slide_path = slide_path
         self.tile_size = tile_size
         self.slide = openslide.OpenSlide(self.slide_path)
         self.dataset = LowMagRegionDataset(self.slide, self.tile_size)
-        self.dataloader = DataLoader(self.dataset, batch_size=batch_size, num_workers=num_workers, collate_fn=custom_collate_fn)
+        self.dataloader = DataLoader(
+            self.dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            collate_fn=custom_collate_fn,
+        )
         # Load the model
         self.model = load_clf_model(region_clf_ckpt_path)
 
         # shape of the heatmap should be slide_width_level_0 // 512, slide_height_level_0 // 512, we start by initializing it to zeros numpy array
-        self.heatmap = np.zeros((self.slide.dimensions[0] // 512, self.slide.dimensions[1] // 512))
+        self.heatmap = np.zeros(
+            (self.slide.dimensions[0] // 512, self.slide.dimensions[1] // 512)
+        )
         self.dz_heatmap_dict = {}
 
     def compute_heatmap(self):
@@ -112,7 +123,7 @@ class HeatMapTileMaker:
         for pil_images, coordinates in tqdm(self.dataloader, desc="Processing Batches"):
             # Predict batch of images
             scores = predict_batch(pil_images, self.model)
-            
+
             for i, (x, y) in enumerate(coordinates):
                 # Update the heatmap with the confidence score, as a float
                 self.heatmap[x, y] = scores[i]
@@ -127,10 +138,9 @@ class HeatMapTileMaker:
 
         for level in range(self.slide.level_count - 2, -1, -1):
             current_heatmap = dyadic_average_downsample_heatmap(current_heatmap)
-            self.dz_heatmap_dict[level] = current_heatmap    
+            self.dz_heatmap_dict[level] = current_heatmap
 
         print(f"Largest score: {largest_score}")
-        
 
     def get_heatmap_values(self, level, x, y):
         """
@@ -146,21 +156,25 @@ class HeatMapTileMaker:
         """
 
         try:
-            return float(self.dz_heatmap_dict[level][x, y]) # if index out of bounds, return 0
+            return float(
+                self.dz_heatmap_dict[level][x, y]
+            )  # if index out of bounds, return 0
         except IndexError:
             return float(0)
-        
+
     def get_gaussian_heatmap_values(self, x, y):
-        """ 
+        """
         Get the heatmap values at a specific level and location using a gaussian kernel centered at the center of the slide, with sigma = 1/3 of the slide height.
         """
         slide_width, slide_height = self.slide.dimensions
         center_x = 2 * (slide_width // self.tile_size) // 3
-        center_y = 1 *(slide_height // self.tile_size) // 3
+        center_y = 1 * (slide_height // self.tile_size) // 3
         sigma = (slide_height // self.tile_size) / 3
-        heatmap_values = np.exp(-((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma ** 2))
+        heatmap_values = np.exp(
+            -((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma**2)
+        )
         return heatmap_values
-        
+
     def get_heatmap_image(self, level, x, y):
         """
         Get the heatmap overlay for a specific level and location.
@@ -174,14 +188,45 @@ class HeatMapTileMaker:
         - np.ndarray: The heatmap overlay as a NumPy array.
         """
 
-        openslide_level = self.slide.level_count - 1 - level            
+        openslide_level = self.slide.level_count - 1 - level
         heatmap_grid_size = 512 // (2 ** (openslide_level))
 
         heatmap_overlay_score = np.zeros((512, 512))
 
-        for i in range(2**(openslide_level)):
-            for j in range(2**(openslide_level)):
+        for i in range(2 ** (openslide_level)):
+            for j in range(2 ** (openslide_level)):
                 # heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*(2**(openslide_level)) + i, y*(2**(openslide_level)) + j)
-                heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_heatmap_values(self.slide.level_count - 1, x*2**(openslide_level) + i, y*2**(openslide_level) + j)
-        
+                heatmap_overlay_score[
+                    j * heatmap_grid_size : (j + 1) * heatmap_grid_size,
+                    i * heatmap_grid_size : (i + 1) * heatmap_grid_size,
+                ] = self.get_heatmap_values(
+                    self.slide.level_count - 1,
+                    x * 2 ** (openslide_level) + i,
+                    y * 2 ** (openslide_level) + j,
+                )
+
         return generate_red_green_heatmap(heatmap_overlay_score)
+
+    def save_heatmap_to_h5(self, heatmap_h5_save_path):
+        # save the self.dz_heatmap_dict[self.slide.level_count - 1] to the h5 file with a key "heatmap"
+
+        with h5py.File(heatmap_h5_save_path, "w") as f:
+            f.create_dataset(
+                "heatmap", data=self.dz_heatmap_dict[self.slide.level_count - 1]
+            )
+
+        print(f"Saved heatmap to {heatmap_h5_save_path}")
+
+
+def create_heatmap_to_h5(slide_path, heatmap_h5_save_path):
+    heatmap_tile_maker = HeatMapTileMaker(slide_path=slide_path, tile_size=512)
+    heatmap_tile_maker.compute_heatmap()
+    heatmap_tile_maker.save_heatmap_to_h5(heatmap_h5_save_path)
+
+
+if __name__ == "__main__":
+    slide_path = (
+        "/media/hdd3/neo/tmp_slide_dir/H19-5749;S10;MSKI - 2023-05-24 21.38.53.ndpi"
+    )
+    heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
+    create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
