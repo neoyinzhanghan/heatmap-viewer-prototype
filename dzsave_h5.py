@@ -420,7 +420,9 @@ def retrieve_tile_h5(h5_path, level, row, col):
 
 
 if __name__ == "__main__":
-    slide_path = "/media/hdd3/neo/BMA_AML/H23-9432;S14;MSK1 - 2023-12-12 04.55.10.ndpi"
+    slide_path = (
+        "/media/hdd3/neo/tmp_slide_dir/H19-5749;S10;MSKI - 2023-05-24 21.38.53.ndpi"
+    )
     tmp_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide.h5"
 
     dzsave_h5(
