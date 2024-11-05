@@ -11,7 +11,7 @@ load_dotenv()
 
 # Paths and parameters for DZI creation
 slide_path = (
-    "/media/hdd3/neo/tmp_slide_dir/H19-5749;S10;MSKI - 2023-05-24 21.38.53.ndpi"
+    "/media/hdd3/neo/BMA_AML/H23-9432;S14;MSK1 - 2023-12-12 04.55.10.jpg"
 )
 tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide.h5"
 heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
