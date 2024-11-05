@@ -123,19 +123,23 @@ class HeatMapTileLoader:
 
         heatmap_overlay_score = np.zeros((512, 512))
 
-        for i in range(2 ** (openslide_level)):
-            for j in range(2 ** (openslide_level)):
-                # heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*(2**(openslide_level)) + i, y*(2**(openslide_level)) + j)
-                heatmap_overlay_score[
-                    j * heatmap_grid_size : (j + 1) * heatmap_grid_size,
-                    i * heatmap_grid_size : (i + 1) * heatmap_grid_size,
-                ] = self.get_heatmap_values(
-                    18,
-                    x * 2 ** (openslide_level) + i,
-                    y * 2 ** (openslide_level) + j,
-                )
+        if openslide_level <= 7:
+            for i in range(2 ** (openslide_level)):
+                for j in range(2 ** (openslide_level)):
+                    # heatmap_overlay_score[j*heatmap_grid_size:(j+1)*heatmap_grid_size, i*heatmap_grid_size:(i+1)*heatmap_grid_size] = self.get_gaussian_heatmap_values(x*(2**(openslide_level)) + i, y*(2**(openslide_level)) + j)
+                    heatmap_overlay_score[
+                        j * heatmap_grid_size : (j + 1) * heatmap_grid_size,
+                        i * heatmap_grid_size : (i + 1) * heatmap_grid_size,
+                    ] = self.get_heatmap_values(
+                        18,
+                        x * 2 ** (openslide_level) + i,
+                        y * 2 ** (openslide_level) + j,
+                    )
 
-        return generate_red_green_heatmap(heatmap_overlay_score)
+            return generate_red_green_heatmap(heatmap_overlay_score)
+
+        else:
+            return generate_red_green_heatmap(heatmap_overlay_score)
 
     def save_heatmap_to_h5(self, heatmap_h5_save_path):
         # save the self.dz_heatmap_dict[18] to the h5 file with a key "heatmap"
