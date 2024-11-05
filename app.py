@@ -1,4 +1,11 @@
-from flask import Flask, send_file, request, jsonify, render_template_string, make_response
+from flask import (
+    Flask,
+    send_file,
+    request,
+    jsonify,
+    render_template_string,
+    make_response,
+)
 from compute_heatmap import HeatMapTileMaker
 from utils import smooth_function
 from PIL import Image
@@ -14,13 +21,16 @@ alpha = 0.5
 # Directory for uploaded slides (not used anymore)
 UPLOAD_FOLDER = "/media/hdd3/neo/"
 
+
 # Helper function to get the full path of a slide
 def get_slide_path(slide_name):
     return os.path.join(UPLOAD_FOLDER, slide_name)
 
+
 # Create a placeholder variable for the slide
 slide = None
 heatmap_tile_maker = None
+
 
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     heatmap_image = np.array(heatmap_image.convert("RGB"))
@@ -34,7 +44,7 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     return Image.fromarray(overlay_image_np)
 
 
-@app.route('/tile/<int:level>/<int:x>/<int:y>/', methods=['GET'])
+@app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(level, x, y):
     global slide
     if not slide:
@@ -42,30 +52,34 @@ def get_tile(level, x, y):
 
     tile_size = 512
     openslide_level = slide.level_count - 1 - level
-    tile_x = x * tile_size * (2 ** openslide_level)
-    tile_y = y * tile_size * (2 ** openslide_level)
+    tile_x = x * tile_size * (2**openslide_level)
+    tile_y = y * tile_size * (2**openslide_level)
 
     try:
-        region = slide.read_region((tile_x, tile_y), openslide_level, (tile_size, tile_size)).convert("RGB")
+        region = slide.read_region(
+            (tile_x, tile_y), openslide_level, (tile_size, tile_size)
+        ).convert("RGB")
         heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
         region = np.array(region, dtype=np.uint8)
         overlay_image = get_heatmap_overlay(region, heatmap_image, alpha=alpha)
         img_io = io.BytesIO()
-        overlay_image.save(img_io, format='JPEG', quality=90)
+        overlay_image.save(img_io, format="JPEG", quality=90)
         img_io.seek(0)
-        response = make_response(send_file(img_io, mimetype='image/jpeg'))
-        
+        response = make_response(send_file(img_io, mimetype="image/jpeg"))
+
         # Disable caching at the HTTP level
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
         return response
     except Exception as e:
         print(f"Error serving tile: {e}")
         return "Tile not found", 404
 
 
-@app.route('/change_slide/<slide_name>', methods=['POST'])
+@app.route("/change_slide/<slide_name>", methods=["POST"])
 def change_slide(slide_name):
     global slide, heatmap_tile_maker
     slide_path = get_slide_path(slide_name)
@@ -80,19 +94,22 @@ def change_slide(slide_name):
             return jsonify(success=False), 500
     return jsonify(success=False), 400
 
-@app.route('/set_alpha', methods=['POST'])
+
+@app.route("/set_alpha", methods=["POST"])
 def set_alpha():
     global alpha
     alpha = float(request.json.get("alpha", 0.5))
     return jsonify(success=True)
 
-@app.route('/')
+
+@app.route("/")
 def index():
     global slide
     if not slide:
         return "No slide loaded", 400
 
-    return render_template_string("""
+    return render_template_string(
+        """
     <!DOCTYPE html>
     <html>
         <head>
@@ -183,8 +200,12 @@ def index():
             </script>
         </body>
     </html>
-    """, height_value=slide.dimensions[1], width_value=slide.dimensions[0], max_level=slide.level_count - 1)
+    """,
+        height_value=slide.dimensions[1],
+        width_value=slide.dimensions[0],
+        max_level=slide.level_count - 1,
+    )
 
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
