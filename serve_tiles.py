@@ -49,14 +49,8 @@ def load_tile(level, x, y, slide_name="bma_test_slide"):
             heatmap_dataset = f["heatmap"]
             print(f"Heatmap dataset shape: {heatmap_dataset.shape}")
 
-            # Adjust indexing based on the number of dimensions
-            if len(heatmap_dataset.shape) == 3:
-                heatmap = heatmap_dataset[level, x, y]
-            elif len(heatmap_dataset.shape) == 2:
-                # Use only two indices if the dataset is 2D
-                heatmap = heatmap_dataset[x, y]
-            else:
-                raise ValueError("Unexpected heatmap dimensions")
+            # make sure heatmap dataset is a numpy array
+            heatmap = np.array(heatmap_dataset)
 
             # Create heatmap tile loader
             heatmap_tile_loader = HeatMapTileLoader(np_heatmap=heatmap)
