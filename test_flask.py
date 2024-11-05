@@ -30,6 +30,11 @@ SLIDE_NAME = "bma_test_slide"
 slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}.h5")
 heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}_heatmap.h5")
 
+# open the slide h5 file and get all the keys
+with h5py.File(slide_h5_path, "r") as f:
+    height = f.attrs["level_0_height"]
+    width = f.attrs["level_0_width"]
+
 # Global variables
 alpha = DEFAULT_ALPHA
 
@@ -112,11 +117,6 @@ def set_alpha():
 def index():
     # Fixed max level
     MAX_LEVEL = 18
-
-    # Get dimensions from H5 file metadata
-    with h5py.File(slide_h5_path, "r") as f:
-        height = f.attrs["level_0_height"]
-        width = f.attrs["level_0_width"]
 
     return render_template_string(
         """
