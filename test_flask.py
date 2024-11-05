@@ -15,8 +15,7 @@ import io
 import numpy as np
 import os
 import base64
-from read_heatmap import HeatMapTileLoader
-from utils import smooth_function
+from compute_heatmap import HeatMapTileMaker
 
 app = Flask(__name__)
 CORS(app)
@@ -26,16 +25,20 @@ S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
 TILE_SIZE = 512
 DEFAULT_ALPHA = 0.5
 
+# Fixed test slide configuration
+SLIDE_NAME = "bma_test_slide"
+slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}.h5")
+heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}_heatmap.h5")
+
 # Global variables
-current_slide_name = None
-heatmap_tile_maker = None
 alpha = DEFAULT_ALPHA
 
-def get_file_paths(slide_name):
-    """Generate paths for slide and heatmap H5 files."""
-    slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide_name}.h5")
-    heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide_name}_heatmap.h5")
-    return slide_h5_path, heatmap_h5_path
+# Initialize heatmap on startup
+with h5py.File(heatmap_h5_path, "r") as f:
+    heatmap_dataset = f["heatmap"]
+    heatmap = np.array(heatmap_dataset)
+    heatmap_tile_maker = HeatMapTileMaker(heatmap=heatmap, tile_size=TILE_SIZE)
+    heatmap_tile_maker.compute_heatmap()
 
 def retrieve_tile_h5(h5_path, level, row, col):
     """Retrieve tile from an HDF5 file."""
@@ -63,23 +66,9 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
     return overlay_image_np
 
-def image_to_jpeg_string(image):
-    """Convert PIL image to JPEG byte string."""
-    buffer = io.BytesIO()
-    image.save(buffer, format="JPEG")
-    return buffer.getvalue()
-
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(level, x, y):
-    global current_slide_name, heatmap_tile_maker, alpha
-    
-    if not current_slide_name:
-        return "No slide loaded", 400
-
     try:
-        # Get file paths
-        slide_h5_path, _ = get_file_paths(current_slide_name)
-        
         # Get the base tile
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
         
@@ -106,32 +95,6 @@ def get_tile(level, x, y):
         print(f"Error serving tile: {e}")
         return f"Tile not found: {str(e)}", 404
 
-@app.route("/change_slide/<slide_name>", methods=["POST"])
-def change_slide(slide_name):
-    global current_slide_name, heatmap_tile_maker
-    
-    slide_h5_path, heatmap_h5_path = get_file_paths(slide_name)
-    
-    if not os.path.exists(slide_h5_path):
-        return jsonify(success=False, error="Slide file not found"), 400
-        
-    try:
-        # Load heatmap data
-        with h5py.File(heatmap_h5_path, "r") as f:
-            heatmap_dataset = f["heatmap"]
-            heatmap = np.array(heatmap_dataset)
-        
-        # Initialize heatmap tile maker
-        heatmap_tile_maker = HeatMapTileLoader(heatmap=heatmap, tile_size=TILE_SIZE)
-        heatmap_tile_maker.compute_heatmap()
-        
-        current_slide_name = slide_name
-        return jsonify(success=True)
-        
-    except Exception as e:
-        print(f"Error loading slide: {e}")
-        return jsonify(success=False, error=str(e)), 500
-
 @app.route("/set_alpha", methods=["POST"])
 def set_alpha():
     global alpha
@@ -140,13 +103,7 @@ def set_alpha():
 
 @app.route("/")
 def index():
-    global current_slide_name
-    
-    if not current_slide_name:
-        return "No slide loaded", 400
-        
     # Get dimensions from H5 file
-    slide_h5_path, _ = get_file_paths(current_slide_name)
     with h5py.File(slide_h5_path, "r") as f:
         max_level = len(f.keys()) - 1  # Exclude heatmap key if present
         # Assuming level 0 contains the dimensions somehow - adjust as needed
