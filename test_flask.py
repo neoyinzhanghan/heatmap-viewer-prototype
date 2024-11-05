@@ -78,6 +78,10 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
 
     region = region.astype(np.float32) / 255.0
     heatmap_image = heatmap_image.astype(np.float32) / 255.0
+
+    # make sure the heatmap image is the same size as the region
+    heatmap_image = heatmap_image[: region.shape[0], : region.shape[1]]
+
     overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
     overlay_image_np = np.clip(overlay_image_np, 0, 1)
     overlay_image_np = (overlay_image_np * 255).astype(np.uint8)
