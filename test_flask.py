@@ -103,11 +103,12 @@ def set_alpha():
 
 @app.route("/")
 def index():
+    # Fixed max level
+    MAX_LEVEL = 18
+    
     # Get dimensions from H5 file
     with h5py.File(slide_h5_path, "r") as f:
-        max_level = len(f.keys()) - 1  # Exclude heatmap key if present
-        # Assuming level 0 contains the dimensions somehow - adjust as needed
-        dimensions = f["0"].shape  # This might need adjustment based on H5 structure
+        dimensions = f["0"].shape
     
     return render_template_string(
         """
@@ -198,7 +199,7 @@ def index():
         """,
         height_value=dimensions[0],
         width_value=dimensions[1],
-        max_level=max_level,
+        max_level=MAX_LEVEL,
         tile_size=TILE_SIZE,
     )
 
