@@ -1,7 +1,4 @@
 import os
-from flask import Flask, send_file, request, jsonify, make_response
-from flask_cors import CORS
-from PIL import Image
 import h5py
 import io
 import numpy as np
@@ -11,6 +8,10 @@ import threading
 import time
 import boto3
 from read_heatmap import HeatMapTileLoader  # Ensure this module is accessible
+from flask import Flask, send_file, request, jsonify, make_response
+from flask_cors import CORS
+from dotenv import load_dotenv
+from PIL import Image
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allows requests from any origin
@@ -23,10 +24,11 @@ TILE_SIZE = 512
 DEFAULT_ALPHA = 0.5
 INACTIVITY_TIMEOUT = 10  # Time in seconds before shutdown
 
+# Load environment variables from .env file
+load_dotenv()
 # AWS Configuration
-INSTANCE_ID = "your-ec2-instance-id"  # Replace with your EC2 instance ID
-AWS_REGION = "your-aws-region"  # Replace with your AWS region
-
+INSTANCE_ID = os.getenv("INSTANCE_ID")
+AWS_REGION = os.getenv("AWS_REGION")
 # Fixed test slide configuration
 SLIDE_NAME = "bma_test_slide"
 slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}.h5")
