@@ -8,7 +8,7 @@ load_dotenv()
 def mount_s3_bucket():
     # Load variables from .env
     bucket_name = os.getenv("S3_BUCKET_NAME")
-    mount_point = "/mnt/s3"  # Change this to your desired mount point path
+    mount_point = "/home/ubuntu/cp-lab-wsi-upload"  # Change this to your desired mount point path
     aws_region = os.getenv("AWS_REGION")
 
     if not all([bucket_name, mount_point, aws_region]):
