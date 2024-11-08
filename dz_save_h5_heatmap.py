@@ -29,14 +29,14 @@ def dzsave_h5_with_heatmap(slide_path):
     )
 
     # Generate DZI files with a spinner
-    with tqdm_spinner(desc="Generating DZI files..."):
-        dzsave_h5(
-            slide_path,
-            tmp_save_path,
-            tile_size=512,
-            num_cpus=32,
-            region_cropping_batch_size=256,
-        )
+    print("Generating DZI files...")
+    dzsave_h5(
+        slide_path,
+        tmp_save_path,
+        tile_size=512,
+        num_cpus=32,
+        region_cropping_batch_size=256,
+    )
 
     with tqdm_spinner(desc="Creating heatmap..."):
         create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
@@ -46,10 +46,10 @@ def dzsave_h5_with_heatmap(slide_path):
     )
 
     try:
-        with tqdm_spinner(desc="Uploading H5 files to S3..."):
-            # Move files to the S3 mount point
-            shutil.move(tmp_save_path, S3_save_path)
-            shutil.move(heatmap_h5_save_path, heatmap_S3_save_path)
+        print("Uploading H5 files to S3...")
+        # Move files to the S3 mount point
+        shutil.move(tmp_save_path, S3_save_path)
+        shutil.move(heatmap_h5_save_path, heatmap_S3_save_path)
     except Exception as e:
         print(
             f"Error uploading H5 files to S3: {e}. Cleaning up files before shutdown to prevent corruption ..."
