@@ -6,9 +6,6 @@ import io
 import numpy as np
 import os
 import base64
-import threading
-import time
-import boto3
 from read_heatmap import HeatMapTileLoader  # Ensure this module is accessible
 
 app = Flask(__name__)
@@ -18,11 +15,6 @@ CORS(app, resources={r"/*": {"origins": "*"}})  # Allows requests from any origi
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
 TILE_SIZE = 512
 DEFAULT_ALPHA = 0.5
-INACTIVITY_TIMEOUT = 10  # Time in seconds before shutdown
-
-# AWS Configuration
-INSTANCE_ID = "your-ec2-instance-id"  # Replace with your EC2 instance ID
-AWS_REGION = "your-aws-region"  # Replace with your AWS region
 
 # Fixed test slide configuration
 SLIDE_NAME = "bma_test_slide"
@@ -31,7 +23,6 @@ heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}_heatmap.h5")
 
 # Global variables
 alpha = DEFAULT_ALPHA
-last_activity_time = time.time()  # Track last API call time
 
 # Initialize slide dimensions and heatmap
 try:
@@ -52,34 +43,6 @@ try:
 except Exception as e:
     print(f"Error loading heatmap: {e}")
     heatmap_tile_maker = None
-
-
-def update_last_activity():
-    """Update the last activity timestamp."""
-    global last_activity_time
-    last_activity_time = time.time()
-
-
-def shutdown_ec2_instance():
-    """Shut down the EC2 instance if inactive for too long."""
-    ec2 = boto3.client("ec2", region_name=AWS_REGION)
-    print("Shutting down EC2 instance due to inactivity.")
-    ec2.stop_instances(InstanceIds=[INSTANCE_ID])
-
-
-def monitor_inactivity():
-    """Monitor for inactivity and shut down if exceeded."""
-    while True:
-        time.sleep(5)  # Check every 5 seconds
-        if time.time() - last_activity_time > INACTIVITY_TIMEOUT:
-            shutdown_ec2_instance()
-            break
-
-
-# Start the inactivity monitor thread
-monitor_thread = threading.Thread(target=monitor_inactivity)
-monitor_thread.daemon = True
-monitor_thread.start()
 
 
 def retrieve_tile_h5(h5_path, level, row, col):
@@ -107,7 +70,6 @@ def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
 @app.route("/dimensions", methods=["GET"])
 def get_dimensions():
     """Endpoint to retrieve slide dimensions."""
-    update_last_activity()
     if not height or not width:
         return jsonify(error="Slide dimensions not set"), 500
     return jsonify(height=height, width=width)
@@ -116,29 +78,30 @@ def get_dimensions():
 @app.route("/")
 def index():
     """Root endpoint for testing."""
-    update_last_activity()
     return "Flask server is running", 200
 
 
 @app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(level, x, y):
     """Retrieve a tile and apply the heatmap overlay."""
-    update_last_activity()
     if not height or not width:
         return "Slide dimensions not set", 500
     if not heatmap_tile_maker:
         return "Heatmap not initialized", 500
 
     try:
+        # Retrieve the base tile
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
         if region is None:
             return "Tile not found", 404
 
+        # Retrieve the heatmap overlay for the tile
         heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
         overlay_image = get_heatmap_overlay(
             np.array(region), heatmap_image, alpha=alpha
         )
 
+        # Convert to JPEG and send
         img_io = io.BytesIO()
         Image.fromarray(overlay_image).save(img_io, format="JPEG", quality=90)
         img_io.seek(0)
@@ -155,7 +118,6 @@ def get_tile(level, x, y):
 @app.route("/set_alpha", methods=["POST"])
 def set_alpha():
     """Set the transparency level for the overlay."""
-    update_last_activity()
     global alpha
     try:
         alpha_value = request.json.get("alpha", DEFAULT_ALPHA)
