@@ -1,3 +1,4 @@
+import os
 from flask import Flask, send_file, request, jsonify, make_response
 from flask_cors import CORS
 from PIL import Image
@@ -13,6 +14,8 @@ from read_heatmap import HeatMapTileLoader  # Ensure this module is accessible
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allows requests from any origin
+os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "/home/ubuntu/.aws_alt/credentials"
+
 
 # Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
@@ -32,6 +35,7 @@ heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}_heatmap.h5")
 # Global variables
 alpha = DEFAULT_ALPHA
 last_activity_time = time.time()  # Track last API call time
+
 
 # Initialize slide dimensions and heatmap
 try:
