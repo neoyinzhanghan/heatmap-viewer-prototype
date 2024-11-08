@@ -21,7 +21,8 @@ def mount_s3(bucket_name, mount_point, cache_dir="/tmp", credentials_file="/home
         "/usr/bin/s3fs", bucket_name, mount_point,
         "-o", f"use_cache={cache_dir}",
         "-o", f"passwd_file={credentials_file}",
-        "-o", "allow_other"
+        "-o", "allow_other",
+        "-o", "umask=0000"
     ]
 
     # Run the mount command
