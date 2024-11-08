@@ -1,49 +1,40 @@
 import os
 import subprocess
-from dotenv import load_dotenv
+import sys
 
-# Load environment variables from .env file
-load_dotenv()
+def is_mounted(mount_point):
+    """Check if a directory is already mounted."""
+    result = subprocess.run(['mountpoint', '-q', mount_point], capture_output=True)
+    return result.returncode == 0
 
-
-def mount_s3_bucket():
-    # Load variables from .env
-    bucket_name = os.getenv("S3_BUCKET_NAME")
-    mount_point = (
-        "/home/ubuntu/cp-lab-wsi-upload"  # Change this to your desired mount point path
-    )
-    aws_region = os.getenv("AWS_REGION")
-
-    if not all([bucket_name, mount_point, aws_region]):
-        print("Missing required environment variables.")
+def mount_s3(bucket_name, mount_point, cache_dir="/tmp", credentials_file="/home/ubuntu/.aws/credentials"):
+    """Mount an S3 bucket using s3fs if it's not already mounted."""
+    if is_mounted(mount_point):
+        print(f"{mount_point} is already mounted.")
         return
 
-    # Ensure the mount point directory exists
+    # Ensure the mount directory exists
     os.makedirs(mount_point, exist_ok=True)
 
-    # Mount the S3 bucket using s3fs
+    # Construct the s3fs mount command
+    cmd = [
+        "/usr/bin/s3fs", bucket_name, mount_point,
+        "-o", f"use_cache={cache_dir}",
+        "-o", f"passwd_file={credentials_file}",
+        "-o", "allow_other"
+    ]
+
+    # Run the mount command
     try:
-        cmd = [
-            "s3fs",
-            bucket_name,
-            mount_point,
-            "-o",
-            f"endpoint={aws_region}",
-            "-o",
-            "allow_other",
-            "-o",
-            "use_path_request_style",
-            "-o",
-            "dbglevel=info",
-            "-o",
-            "curldbg",
-        ]
-
+        print(f"Mounting {bucket_name} to {mount_point}...")
         subprocess.run(cmd, check=True)
-        print(f"S3 bucket '{bucket_name}' mounted at '{mount_point}'")
+        print(f"Mounted {bucket_name} to {mount_point}")
     except subprocess.CalledProcessError as e:
-        print(f"Error mounting S3 bucket: {e}")
-
+        print(f"Failed to mount {bucket_name} to {mount_point}: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    mount_s3_bucket()
+    BUCKET_NAME = "cp-lab-wsi-upload"
+    MOUNT_POINT = "/home/ubuntu/cp-lab-wsi-upload"
+
+    mount_s3(BUCKET_NAME, MOUNT_POINT)
