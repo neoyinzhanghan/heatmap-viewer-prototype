@@ -3,7 +3,6 @@ import shutil
 from LLRunner.slide_processing.dzsave_h5 import dzsave_h5
 from compute_heatmap import create_heatmap_to_h5
 from tqdm import tqdm
-from tqdm.asyncio import tqdm_spinner
 
 tmp_save_dir_path = "/media/hdd3/neo/tmp_heatmap_dir"
 tmp_heatmap_save_dir_path = "/media/hdd3/neo/tmp_heatmap_dir/heatmaps"
@@ -38,8 +37,8 @@ def dzsave_h5_with_heatmap(slide_path):
         region_cropping_batch_size=256,
     )
 
-    with tqdm_spinner(desc="Creating heatmap..."):
-        create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
+    print("Creating heatmap...")
+    create_heatmap_to_h5(slide_path, heatmap_h5_save_path)
 
     print(
         f"H5 file and heatmap created successfully to {tmp_save_path} and {heatmap_h5_save_path}"
