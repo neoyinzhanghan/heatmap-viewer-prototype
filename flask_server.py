@@ -32,7 +32,7 @@ AWS_REGION = os.getenv("AWS_REGION")
 # Fixed test slide configuration
 SLIDE_NAME = "bma_test_slide"
 slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}.h5")
-heatmap_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}_heatmap.h5")
+heatmap_h5_path = os.path.join(S3_MOUNT_PATH, "heatmaps", f"{SLIDE_NAME}_heatmap.h5")
 
 # Global variables
 alpha = DEFAULT_ALPHA
