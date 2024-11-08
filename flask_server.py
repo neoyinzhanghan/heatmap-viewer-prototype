@@ -2,7 +2,7 @@ import os
 import h5py
 import io
 import numpy as np
-import os
+import glob
 import base64
 import threading
 import time
@@ -17,47 +17,21 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allows requests from any origin
 os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "/home/ubuntu/.aws_alt/credentials"
 
-
 # Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
 TILE_SIZE = 512
 DEFAULT_ALPHA = 0.5
-INACTIVITY_TIMEOUT = 10  # Time in seconds before shutdown
+INACTIVITY_TIMEOUT = 600  # Time in seconds before shutdown
 
 # Load environment variables from .env file
 load_dotenv()
-# AWS Configuration
 INSTANCE_ID = os.getenv("INSTANCE_ID")
 AWS_REGION = os.getenv("AWS_REGION")
-# Fixed test slide configuration
-SLIDE_NAME = "bma_test_slide"
-slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{SLIDE_NAME}.h5")
-heatmap_h5_path = os.path.join(S3_MOUNT_PATH, "heatmaps", f"{SLIDE_NAME}_heatmap.h5")
 
 # Global variables
 alpha = DEFAULT_ALPHA
 last_activity_time = time.time()  # Track last API call time
-
-
-# Initialize slide dimensions and heatmap
-try:
-    with h5py.File(slide_h5_path, "r") as f:
-        height = int(f["level_0_height"][()])
-        width = int(f["level_0_width"][()])
-    print(f"Loaded slide dimensions: height={height}, width={width}")
-except Exception as e:
-    print(f"Error reading slide dimensions: {e}")
-    height, width = None, None
-
-try:
-    with h5py.File(heatmap_h5_path, "r") as f:
-        heatmap = np.array(f["heatmap"])
-        heatmap_tile_maker = HeatMapTileLoader(np_heatmap=heatmap, tile_size=TILE_SIZE)
-        heatmap_tile_maker.compute_heatmap()
-    print("Heatmap initialized successfully")
-except Exception as e:
-    print(f"Error loading heatmap: {e}")
-    heatmap_tile_maker = None
+heatmap_tile_makers = {}  # Dictionary to store heatmap tile makers per slide
 
 
 def update_last_activity():
@@ -88,52 +62,72 @@ monitor_thread.daemon = True
 monitor_thread.start()
 
 
-def retrieve_tile_h5(h5_path, level, row, col):
-    """Retrieve tile from an HDF5 file."""
+@app.route("/slides", methods=["GET"])
+def list_slides():
+    """Endpoint to list all available slides (.h5 files)"""
     try:
-        with h5py.File(h5_path, "r") as f:
-            jpeg_string = base64.b64decode(f[str(level)][row, col])
-            image = Image.open(io.BytesIO(jpeg_string))
-            return image
+        h5_files = glob.glob(os.path.join(S3_MOUNT_PATH, "*.h5"))
+        slide_names = [os.path.basename(f).replace(".h5", "") for f in h5_files]
+        return jsonify(slides=slide_names)
     except Exception as e:
-        print(f"Error retrieving tile at level {level}, row {row}, col {col}: {e}")
-        return None
-
-
-def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
-    """Create overlay of region and heatmap."""
-    heatmap_image = np.array(heatmap_image.convert("RGB"))
-    region = region.astype(np.float32) / 255.0
-    heatmap_image = heatmap_image.astype(np.float32) / 255.0
-    heatmap_image = heatmap_image[: region.shape[0], : region.shape[1]]
-    overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
-    return (np.clip(overlay_image_np, 0, 1) * 255).astype(np.uint8)
+        print(f"Error listing slides: {e}")
+        return jsonify(error="Could not retrieve slide list"), 500
 
 
 @app.route("/dimensions", methods=["GET"])
 def get_dimensions():
-    """Endpoint to retrieve slide dimensions."""
+    """Endpoint to retrieve slide dimensions based on selected slide name."""
     update_last_activity()
-    if not height or not width:
-        return jsonify(error="Slide dimensions not set"), 500
-    return jsonify(height=height, width=width)
+    slide_name = request.args.get("slide")
+    if not slide_name:
+        return jsonify(error="Slide name is required"), 400
+
+    slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide_name}.h5")
+    if not os.path.exists(slide_h5_path):
+        return jsonify(error="Slide not found"), 404
+
+    try:
+        with h5py.File(slide_h5_path, "r") as f:
+            height = int(f["level_0_height"][()])
+            width = int(f["level_0_width"][()])
+        return jsonify(height=height, width=width)
+    except Exception as e:
+        print(f"Error reading dimensions for slide '{slide_name}': {e}")
+        return jsonify(error="Could not retrieve slide dimensions"), 500
 
 
-@app.route("/")
-def index():
-    """Root endpoint for testing."""
+def load_heatmap(slide_name):
+    """Load heatmap data for a specific slide and initialize tile maker."""
+    heatmap_h5_path = os.path.join(
+        S3_MOUNT_PATH, "heatmaps", f"{slide_name}_heatmap.h5"
+    )
+    if not os.path.exists(heatmap_h5_path):
+        return None
+    try:
+        with h5py.File(heatmap_h5_path, "r") as f:
+            heatmap = np.array(f["heatmap"])
+        heatmap_tile_maker = HeatMapTileLoader(np_heatmap=heatmap, tile_size=TILE_SIZE)
+        heatmap_tile_maker.compute_heatmap()
+        return heatmap_tile_maker
+    except Exception as e:
+        print(f"Error loading heatmap for slide '{slide_name}': {e}")
+        return None
+
+
+@app.route("/tile/<string:slide>/<int:level>/<int:x>/<int:y>/", methods=["GET"])
+def get_tile(slide, level, x, y):
+    """Retrieve a tile for a specific slide and apply the heatmap overlay."""
     update_last_activity()
-    return "Flask server is running", 200
+    slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide}.h5")
 
+    if slide not in heatmap_tile_makers:
+        heatmap_tile_makers[slide] = load_heatmap(slide)
+    heatmap_tile_maker = heatmap_tile_makers[slide]
 
-@app.route("/tile/<int:level>/<int:x>/<int:y>/", methods=["GET"])
-def get_tile(level, x, y):
-    """Retrieve a tile and apply the heatmap overlay."""
-    update_last_activity()
-    if not height or not width:
-        return "Slide dimensions not set", 500
+    if not os.path.exists(slide_h5_path):
+        return "Slide not found", 404
     if not heatmap_tile_maker:
-        return "Heatmap not initialized", 500
+        return "Heatmap not initialized for slide", 500
 
     try:
         region = retrieve_tile_h5(slide_h5_path, level, x, y)
@@ -154,8 +148,32 @@ def get_tile(level, x, y):
         )
         return response
     except Exception as e:
-        print(f"Error serving tile at level {level}, row {x}, col {y}: {e}")
+        print(
+            f"Error serving tile at level {level}, row {x}, col {y} for slide '{slide}': {e}"
+        )
         return f"Tile not found: {str(e)}", 404
+
+
+def retrieve_tile_h5(h5_path, level, row, col):
+    """Retrieve tile from an HDF5 file."""
+    try:
+        with h5py.File(h5_path, "r") as f:
+            jpeg_string = base64.b64decode(f[str(level)][row, col])
+            image = Image.open(io.BytesIO(jpeg_string))
+            return image
+    except Exception as e:
+        print(f"Error retrieving tile at level {level}, row {row}, col {col}: {e}")
+        return None
+
+
+def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
+    """Create overlay of region and heatmap."""
+    heatmap_image = np.array(heatmap_image.convert("RGB"))
+    region = region.astype(np.float32) / 255.0
+    heatmap_image = heatmap_image.astype(np.float32) / 255.0
+    heatmap_image = heatmap_image[: region.shape[0], : region.shape[1]]
+    overlay_image_np = (1 - alpha) * region + alpha * heatmap_image
+    return (np.clip(overlay_image_np, 0, 1) * 255).astype(np.uint8)
 
 
 @app.route("/set_alpha", methods=["POST"])
