@@ -137,7 +137,7 @@ def get_tile(slide, level, x, y):
         heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
         overlay_image = get_heatmap_overlay(
             np.array(region), heatmap_image, alpha=alpha
-        )
+        ) # TODO, see if you can prevent converting to np.array
 
         img_io = io.BytesIO()
         Image.fromarray(overlay_image).save(img_io, format="JPEG", quality=90)

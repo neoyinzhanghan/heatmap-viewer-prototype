@@ -11,8 +11,8 @@ load_dotenv()
 
 # Paths and parameters for DZI creation
 slide_path = "/media/hdd3/neo/test_slide_2.ndpi"
-tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide.h5"
-heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_heatmap.h5"
+tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_newHM.h5"
+heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_newHM_heatmap.h5"
 
 s3_bucket_name = os.getenv("S3_BUCKET_NAME")
 s3_subfolder = "wsi-and-heatmaps"
