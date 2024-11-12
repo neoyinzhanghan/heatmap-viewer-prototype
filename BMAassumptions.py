@@ -82,7 +82,7 @@ YOLO_batch_size = 32
 #############################
 
 # region_clf_ckpt_path = "/media/hdd3/neo/MODELS/2024-04-25 BMARegionClf Low Mag w Aug 500 Epochs/8/version_0/checkpoints/epoch=499-step=27500.ckpt" # TODO REMOVE this is the old path
-region_clf_ckpt_path = "/media/hdd3/neo/MODELS/2024-11-07_BMARegionClf-20K/1/version_0/checkpoints/epoch=64-step=21515.ckpt"
+region_clf_ckpt_path = "/media/hdd3/neo/MODELS/2024-11-07_BMARegionClf-20K/8/version_0/checkpoints/epoch=64-step=21515.ckpt"
 # region_clf_ckpt_path = "/media/hdd3/neo/MODELS/2024-11-11_BMARegionClf-20K-balanced/8/version_0/checkpoints/epoch=74-step=15075.ckpt"
 # region_clf_ckpt_path = "/media/hdd3/neo/MODELS/2024-02-29 Region Clf no normalization/lightning_logs/8/version_0/checkpoints/epoch=99-step=8200.ckpt"
 # region_clf_ckpt_path = "/media/ssd1/neo/LLCKPTS/epoch=99-step=10300.ckpt" # This one is for alpaca
