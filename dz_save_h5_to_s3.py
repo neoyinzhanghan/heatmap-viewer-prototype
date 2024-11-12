@@ -10,9 +10,13 @@ from tqdm import tqdm
 load_dotenv()
 
 # Paths and parameters for DZI creation
-slide_path = "/media/hdd3/neo/test_slide_2.ndpi"
+slide_path = (
+    "/media/hdd3/neo/error_slides_ndpi/H18-1938;S10;MSKD - 2023-12-12 03.41.46.ndpi"
+)
 tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_newHM.h5"
-heatmap_h5_save_path = "/media/hdd3/neo/S3_tmp_dir/bma_test_slide_newHM_heatmap.h5"
+heatmap_h5_save_path = (
+    "/media/hdd3/neo/S3_tmp_dir/heatmaps/bma_test_slide_newHM_heatmap.h5"
+)
 
 s3_bucket_name = os.getenv("S3_BUCKET_NAME")
 s3_subfolder = "wsi-and-heatmaps"
@@ -52,7 +56,7 @@ h5_s3_key = f"{s3_subfolder}/{os.path.basename(tmp_save_path)}"
 upload_file_to_s3(tmp_save_path, s3_bucket_name, h5_s3_key)
 
 # Upload the heatmap .h5 file to S3 under the specified subfolder
-heatmap_h5_s3_key = f"{s3_subfolder}/{os.path.basename(heatmap_h5_save_path)}"
+heatmap_h5_s3_key = f"{s3_subfolder}/heatmaps/{os.path.basename(heatmap_h5_save_path)}"
 upload_file_to_s3(heatmap_h5_save_path, s3_bucket_name, heatmap_h5_s3_key)
 
 end_time = time.time()
