@@ -77,7 +77,6 @@ def list_slides():
 @app.route("/dimensions", methods=["GET"])
 def get_dimensions():
     """Endpoint to retrieve slide dimensions based on selected slide name."""
-    update_last_activity()
     slide_name = request.args.get("slide")
     if not slide_name:
         return jsonify(error="Slide name is required"), 400
