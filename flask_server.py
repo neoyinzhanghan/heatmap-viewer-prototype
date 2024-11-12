@@ -20,7 +20,7 @@ os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "/home/ubuntu/.aws_alt/credentials"
 # Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
 TILE_SIZE = 512
-DEFAULT_ALPHA = 0.5
+DEFAULT_ALPHA = 0.2
 INACTIVITY_TIMEOUT = 1800  # Time in seconds before shutdown
 
 # Load environment variables from .env file
@@ -137,7 +137,7 @@ def get_tile(slide, level, x, y):
         heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
         overlay_image = get_heatmap_overlay(
             np.array(region), heatmap_image, alpha=alpha
-        ) # TODO, see if you can prevent converting to np.array
+        )  # TODO, see if you can prevent converting to np.array
 
         img_io = io.BytesIO()
         Image.fromarray(overlay_image).save(img_io, format="JPEG", quality=90)
