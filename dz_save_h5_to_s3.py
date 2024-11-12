@@ -11,11 +11,11 @@ load_dotenv()
 
 # Paths and parameters for DZI creation
 slide_path = (
-    "/media/hdd3/neo/error_slides_ndpi/H19-7591;S1;MSK6 - 2023-05-24 16.14.23.ndpi"
+    "/media/hdd3/neo/error_slides_ndpi/H19-6490;S10;MSKM - 2023-12-11 21.02.14.ndpi"
 )
-tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/H19-7591;S1;MSK6 - 2023-05-24 16.14.23.h5"
+tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/H19-6490;S10;MSKM - 2023-12-11 21.02.14.h5"
 heatmap_h5_save_path = (
-    "/media/hdd3/neo/S3_tmp_dir/heatmaps/H19-7591;S1;MSK6 - 2023-05-24 16.14.23_heatmap.h5"
+    "/media/hdd3/neo/S3_tmp_dir/heatmaps/H19-6490;S10;MSKM - 2023-12-11 21.02.14_heatmap.h5"
 )
 
 s3_bucket_name = os.getenv("S3_BUCKET_NAME")
