@@ -13,9 +13,9 @@ load_dotenv()
 slide_path = (
     "/media/hdd3/neo/error_slides_ndpi/H23-4734;S15;MSK2 - 2024-03-01 08.02.56.ndpi"
 )
-tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/H23-4734;S15;MSK2 - 2024-03-01 08.02.56_old.h5"
+tmp_save_path = "/media/hdd3/neo/S3_tmp_dir/H23-4734;S15;MSK2 - 2024-03-01 08.02.56.h5"
 heatmap_h5_save_path = (
-    "/media/hdd3/neo/S3_tmp_dir/heatmaps/H23-4734;S15;MSK2 - 2024-03-01 08.02.56_old_heatmap.h5"
+    "/media/hdd3/neo/S3_tmp_dir/heatmaps/H23-4734;S15;MSK2 - 2024-03-01 08.02.56_heatmap.h5"
 )
 
 s3_bucket_name = os.getenv("S3_BUCKET_NAME")
