@@ -12,7 +12,6 @@ from flask import Flask, send_file, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from PIL import Image
-import ssl
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allows requests from any origin
@@ -197,14 +196,4 @@ def set_alpha():
 
 
 if __name__ == "__main__":
-    # # Retrieve the SSL password from the environment variable
-    # ssl_password = os.getenv("SSL_PASSWORD")
-
-    # Create the SSL context
-    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    context.load_cert_chain(
-        certfile="/home/ubuntu/server.crt", keyfile="/home/ubuntu/server.key"
-    )
-
-    # Run Flask with SSL
-    app.run(host="0.0.0.0", port=5000, ssl_context=context)
+    app.run(host="0.0.0.0", port=5000)  # No SSL
