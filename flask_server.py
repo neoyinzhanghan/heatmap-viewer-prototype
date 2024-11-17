@@ -35,6 +35,11 @@ last_activity_time = time.time()  # Track last API call time
 heatmap_tile_makers = {}  # Dictionary to store heatmap tile makers per slide
 
 
+@app.route("/")
+def home():
+    return "Welcome to the Heatmap Viewer!"
+
+
 def update_last_activity():
     """Update the last activity timestamp."""
     global last_activity_time
