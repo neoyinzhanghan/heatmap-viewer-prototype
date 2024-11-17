@@ -12,15 +12,11 @@ from flask import Flask, send_file, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from PIL import Image
-from OpenSSL import SSL
+import ssl
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # Allows requests from any origin
 os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "/home/ubuntu/.aws_alt/credentials"
-
-context = SSL.Context(SSL.TLSv1_2_METHOD)
-context.use_certificate_file("/home/ubuntu/server.crt")
-context.use_privatekey_file("/home/ubuntu/server.key")
 
 # Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
@@ -196,4 +192,9 @@ def set_alpha():
 
 
 if __name__ == "__main__":
+    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    context.load_cert_chain(
+        certfile="server.crt", keyfile="server.key", password="your_password_here"
+    )
+
     app.run(host="0.0.0.0", port=5000, ssl_context=context)
