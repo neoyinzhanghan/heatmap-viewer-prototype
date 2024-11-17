@@ -192,9 +192,14 @@ def set_alpha():
 
 
 if __name__ == "__main__":
+    # Retrieve the SSL password from the environment variable
+    ssl_password = os.getenv("SSL_PASSWORD")
+    
+    # Create the SSL context
     context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     context.load_cert_chain(
-        certfile="server.crt", keyfile="server.key", password="your_password_here"
+        certfile="/home/ubuntu/server.crt", keyfile="/home/ubuntu/server.key", password=ssl_password
     )
 
+    # Run Flask with SSL
     app.run(host="0.0.0.0", port=5000, ssl_context=context)
