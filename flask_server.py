@@ -121,8 +121,13 @@ def get_tile(slide, level, x, y):
 
         # Apply the overlay
         overlay_image = get_heatmap_overlay(
-            np.array(slide_tile), np.array(heatmap_tile), alpha=alpha
+            np.array(slide_tile), heatmap_tile, alpha=alpha
         )
+
+        # save the overlay image at /home/ubuntu/Documents/neo/tmp_test directory for debugging using level_x_y.jpg
+        overlay_image.save(
+            f"/home/ubuntu/Documents/neo/tmp_test/{level}_{x}_{y}.jpg"
+        )  # TODO remove this is only for debugging
 
         # Convert overlay to image and send response
         img_io = io.BytesIO()
