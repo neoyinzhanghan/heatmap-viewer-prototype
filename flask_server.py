@@ -7,7 +7,6 @@ import base64
 import threading
 import time
 import boto3
-from read_heatmap import HeatMapTileLoader  # Ensure this module is accessible
 from flask import Flask, send_file, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -100,49 +99,32 @@ def get_dimensions():
         return jsonify(error="Could not retrieve slide dimensions"), 500
 
 
-def load_heatmap(slide_name):
-    """Load heatmap data for a specific slide and initialize tile maker."""
-    heatmap_h5_path = os.path.join(
-        S3_MOUNT_PATH, "heatmaps", f"{slide_name}_heatmap.h5"
-    )
-    if not os.path.exists(heatmap_h5_path):
-        return None
-    try:
-        with h5py.File(heatmap_h5_path, "r") as f:
-            heatmap = np.array(f["heatmap"])
-        heatmap_tile_maker = HeatMapTileLoader(np_heatmap=heatmap, tile_size=TILE_SIZE)
-        heatmap_tile_maker.compute_heatmap()
-        return heatmap_tile_maker
-    except Exception as e:
-        print(f"Error loading heatmap for slide '{slide_name}': {e}")
-        return None
-
-
 @app.route("/tile/<string:slide>/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(slide, level, x, y):
     """Retrieve a tile for a specific slide and apply the heatmap overlay."""
-    update_last_activity()
     slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide}.h5")
+    heatmap_h5_path = os.path.join(S3_MOUNT_PATH, "heatmaps", f"{slide}_heatmap.h5")
 
-    if slide not in heatmap_tile_makers:
-        heatmap_tile_makers[slide] = load_heatmap(slide)
-    heatmap_tile_maker = heatmap_tile_makers[slide]
-
+    # Validate file existence
     if not os.path.exists(slide_h5_path):
         return "Slide not found", 404
-    if not heatmap_tile_maker:
-        return "Heatmap not initialized for slide", 500
+    if not os.path.exists(heatmap_h5_path):
+        return "Heatmap not found", 404
 
     try:
-        region = retrieve_tile_h5(slide_h5_path, level, x, y)
-        if region is None:
+        # Retrieve slide and heatmap tiles
+        slide_tile = retrieve_tile_h5(slide_h5_path, level, x, y)
+        heatmap_tile = retrieve_tile_h5(heatmap_h5_path, level, x, y)
+
+        if slide_tile is None or heatmap_tile is None:
             return "Tile not found", 404
 
-        heatmap_image = heatmap_tile_maker.get_heatmap_image(level, x, y)
+        # Apply the overlay
         overlay_image = get_heatmap_overlay(
-            np.array(region), heatmap_image, alpha=alpha
-        )  # TODO, see if you can prevent converting to np.array
+            np.array(slide_tile), np.array(heatmap_tile), alpha=alpha
+        )
 
+        # Convert overlay to image and send response
         img_io = io.BytesIO()
         Image.fromarray(overlay_image).save(img_io, format="JPEG", quality=90)
         img_io.seek(0)
@@ -155,7 +137,7 @@ def get_tile(slide, level, x, y):
         print(
             f"Error serving tile at level {level}, row {x}, col {y} for slide '{slide}': {e}"
         )
-        return f"Tile not found: {str(e)}", 404
+        return jsonify({"error": f"Tile not found: {str(e)}"}), 404
 
 
 def retrieve_tile_h5(h5_path, level, row, col):
