@@ -113,8 +113,8 @@ def get_tile(slide, level, x, y):
 
     try:
         # Retrieve slide and heatmap tiles
-        slide_tile = retrieve_tile_h5(slide_h5_path, level, y, x)
-        heatmap_tile = retrieve_tile_h5(heatmap_h5_path, level, y, x)
+        slide_tile = retrieve_tile_h5(slide_h5_path, level, x, y)
+        heatmap_tile = retrieve_tile_h5(heatmap_h5_path, level, x, y)
 
         if slide_tile is None or heatmap_tile is None:
             return "Tile not found", 404
