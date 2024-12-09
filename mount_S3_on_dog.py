@@ -50,6 +50,6 @@ def mount_s3(
 
 if __name__ == "__main__":
     BUCKET_NAME = "cp-lab-wsi-upload"
-    MOUNT_POINT = "/home/ubuntu/cp-lab-wsi-upload"
+    MOUNT_POINT = "/home/dog/Documents/neo/cp-lab-wsi-upload"
 
     mount_s3(BUCKET_NAME, MOUNT_POINT)
