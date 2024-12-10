@@ -23,6 +23,11 @@ def index():
         <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+        <style>
+            .selected {
+                background-color: #d1e7dd !important;
+            }
+        </style>
     </head>
     <body>
         <h1>WSI Metadata Viewer</h1>
@@ -70,16 +75,17 @@ def index():
                         ]
                     });
 
-                    // Handle row selection
+                    // Allow only one row to be highlighted at a time
                     $('#metadataTable tbody').on('click', 'tr', function () {
-                        $(this).toggleClass('selected');
+                        $('#metadataTable tr.selected').removeClass('selected'); // Remove previous selection
+                        $(this).addClass('selected'); // Highlight the new row
                     });
 
                     // Handle row selection button click
                     $('#selectRowBtn').click(function () {
                         const selectedData = table.rows('.selected').data();
                         if (selectedData.length > 0) {
-                            const selectedRow = selectedData[0]; // Get the first selected row
+                            const selectedRow = selectedData[0]; // Get the selected row
                             $('#selectedRowDetails').text(
                                 `Selected Filename: ${selectedRow.filename}, Heatmap Filename: ${selectedRow.heatmap_filename}`
                             );
