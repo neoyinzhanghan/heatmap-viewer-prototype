@@ -4,7 +4,9 @@ import pandas as pd
 app = Flask(__name__)
 
 # Load metadata
-METADATA_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps/pancreas_metadata.csv"
+METADATA_PATH = (
+    "/home/dog/Documents/neo/cp-lab-wsi-upload/wsi-and-heatmaps/pancreas_metadata.csv"
+)
 metadata = pd.read_csv(METADATA_PATH)
 
 
