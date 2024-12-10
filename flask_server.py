@@ -7,6 +7,7 @@ import base64
 import threading
 import time
 import boto3
+import pandas as pd
 from flask import Flask, send_file, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -19,6 +20,7 @@ os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "/home/ubuntu/.aws_alt/credentials"
 # Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
 METADATA_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps/pancreas_metadata.csv"
+metadata = pd.read_csv(METADATA_PATH)
 
 TILE_SIZE = 256
 DEFAULT_ALPHA = 0.2
@@ -71,6 +73,7 @@ monitor_thread.start()
 @app.route("/slides", methods=["GET"])
 def list_slides():
     """Endpoint to list all available slides (.h5 files)"""
+    update_last_activity()
     try:
         h5_files = glob.glob(os.path.join(S3_MOUNT_PATH, "*.h5"))
         slide_names = [os.path.basename(f).replace(".h5", "") for f in h5_files]
@@ -83,6 +86,7 @@ def list_slides():
 @app.route("/dimensions", methods=["GET"])
 def get_dimensions():
     """Endpoint to retrieve slide dimensions based on selected slide name."""
+    update_last_activity()
     slide_name = request.args.get("slide")
     if not slide_name:
         return jsonify(error="Slide name is required"), 400
@@ -104,6 +108,7 @@ def get_dimensions():
 @app.route("/tile/<string:slide>/<int:level>/<int:x>/<int:y>/", methods=["GET"])
 def get_tile(slide, level, x, y):
     """Retrieve a tile for a specific slide and apply the heatmap overlay."""
+    update_last_activity()
     slide_h5_path = os.path.join(S3_MOUNT_PATH, f"{slide}.h5")
     heatmap_h5_path = os.path.join(S3_MOUNT_PATH, "heatmaps", f"{slide}_heatmap.h5")
 
@@ -144,6 +149,7 @@ def get_tile(slide, level, x, y):
 
 def retrieve_tile_h5(h5_path, level, row, col):
     """Retrieve tile from an HDF5 file."""
+    update_last_activity()
     try:
         with h5py.File(h5_path, "r") as f:
             jpeg_string = base64.b64decode(f[str(level)][row, col])
@@ -156,6 +162,7 @@ def retrieve_tile_h5(h5_path, level, row, col):
 
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """Create overlay of region and heatmap."""
+    update_last_activity()
     heatmap_image = np.array(heatmap_image.convert("RGB"))
     region = region.astype(np.float32) / 255.0
     heatmap_image = heatmap_image.astype(np.float32) / 255.0
@@ -177,6 +184,23 @@ def set_alpha():
     except (TypeError, ValueError) as e:
         print(f"Error setting alpha: {e}")
         return jsonify(success=False, error=str(e)), 400
+
+
+@app.route("/get_metadata", methods=["GET"])
+def get_metadata():
+    """Serve the metadata as JSON."""
+    update_last_activity()
+    data = metadata.to_dict(orient="records")
+    return jsonify(data)
+
+
+@app.route("/select_slide", methods=["POST"])
+def select_slide():
+    """Handle the selected slide."""
+    update_last_activity()
+    selected_row = request.json
+    print(f"Selected Row: {selected_row}")
+    return jsonify({"message": "Slide selected", "selected_row": selected_row})
 
 
 if __name__ == "__main__":
