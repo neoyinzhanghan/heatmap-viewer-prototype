@@ -23,7 +23,7 @@ METADATA_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps/pancreas_metada
 metadata = pd.read_csv(METADATA_PATH)
 
 TILE_SIZE = 256
-DEFAULT_ALPHA = 0.3
+DEFAULT_ALPHA = 0.5
 INACTIVITY_TIMEOUT = 1800  # Time in seconds before shutdown
 
 # Load environment variables from .env file
