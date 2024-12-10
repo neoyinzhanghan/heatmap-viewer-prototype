@@ -149,7 +149,6 @@ def get_tile(slide, level, x, y):
 
 def retrieve_tile_h5(h5_path, level, row, col):
     """Retrieve tile from an HDF5 file."""
-    update_last_activity()
     try:
         with h5py.File(h5_path, "r") as f:
             jpeg_string = base64.b64decode(f[str(level)][row, col])
@@ -162,7 +161,6 @@ def retrieve_tile_h5(h5_path, level, row, col):
 
 def get_heatmap_overlay(region, heatmap_image, alpha=0.5):
     """Create overlay of region and heatmap."""
-    update_last_activity()
     heatmap_image = np.array(heatmap_image.convert("RGB"))
     region = region.astype(np.float32) / 255.0
     heatmap_image = heatmap_image.astype(np.float32) / 255.0
