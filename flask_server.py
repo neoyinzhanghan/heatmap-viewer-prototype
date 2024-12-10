@@ -18,6 +18,8 @@ os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "/home/ubuntu/.aws_alt/credentials"
 
 # Configuration
 S3_MOUNT_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps"
+METADATA_PATH = "/home/ubuntu/cp-lab-wsi-upload/wsi-and-heatmaps/pancreas_metadata.csv"
+
 TILE_SIZE = 256
 DEFAULT_ALPHA = 0.2
 INACTIVITY_TIMEOUT = 1800  # Time in seconds before shutdown
