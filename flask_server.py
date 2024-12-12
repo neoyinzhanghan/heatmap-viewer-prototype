@@ -247,7 +247,7 @@ def select_slide():
 
 
 @app.route("/select_slide_from_pseudo_idx", methods=["POST"])
-def select_slide():
+def select_slide_from_pseudo_idx():
     selected_pseudo_idx = request.json.get("pseudo_idx")
     # Filter the row based on the selected display_name
     row = metadata[metadata["pseudo_idx"] == selected_pseudo_idx]
