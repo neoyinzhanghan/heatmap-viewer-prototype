@@ -8,89 +8,93 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <style>
-        .selected {
-            background-color: #d1e7dd !important;
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
         }
     </style>
 </head>
 <body>
     <h1>WSI Metadata Viewer</h1>
-    <table id="metadataTable" class="display">
-        <thead>
-            <tr>
-                <th>Filename</th>
-                <th>Heatmap Filename</th>
-                <th>Pseudo Index</th>
-                <th>Old Filename</th>
-                <th>Old Heatmap Filename</th>
-                <th>Case Name</th>
-                <th>Benign Probability</th>
-                <th>Low Grade Probability</th>
-                <th>Malignant Probability</th>
-                <th>Non-diagnosis Probability</th>
-                <th>Label</th>
-                <th>Split</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <button id="selectRowBtn">Select Row</button>
-    <p id="selectedRowDetails"></p>
+
+    <label for="groupSelect">Select Group:</label>
+    <select id="groupSelect">
+        <option value="">-- Select Group --</option>
+    </select>
+
+    <label for="slideSelect">Select Slide:</label>
+    <select id="slideSelect" disabled>
+        <option value="">-- Select Slide --</option>
+    </select>
+
+    <button id="selectSlideBtn" disabled>Select Slide</button>
+    <p id="selectedSlideDetails"></p>
 
     <script>
         $(document).ready(function () {
-            // Fetch metadata and populate the table
-            $.getJSON('https://neo-yin.com/get_metadata', function (data) {
-                const table = $('#metadataTable').DataTable({
-                    data: data,
-                    columns: [
-                        { data: 'filename' },
-                        { data: 'heatmap_filename' },
-                        { data: 'pseudo_idx' },
-                        { data: 'old_filename' },
-                        { data: 'old_heatmap_filename' },
-                        { data: 'case_name' },
-                        { data: 'benign_prob' },
-                        { data: 'low_grade_prob' },
-                        { data: 'malignant_prob' },
-                        { data: 'non_diagnosis_prob' },
-                        { data: 'label' },
-                        { data: 'split' }
-                    ]
+            // Fetch groups and populate the group dropdown
+            $.getJSON('https://neo-yin.com/get_groups', function (groups) {
+                const groupSelect = $('#groupSelect');
+                groups.forEach(group => {
+                    groupSelect.append(new Option(group, group));
                 });
+            });
 
-                // Allow only one row to be highlighted at a time
-                $('#metadataTable tbody').on('click', 'tr', function () {
-                    $('#metadataTable tr.selected').removeClass('selected'); // Remove previous selection
-                    $(this).addClass('selected'); // Highlight the new row
-                });
+            // Handle group selection
+            $('#groupSelect').change(function () {
+                const selectedGroup = $(this).val();
+                const slideSelect = $('#slideSelect');
+                slideSelect.empty().append(new Option('-- Select Slide --', ''));
 
-                // Handle row selection button click
-                $('#selectRowBtn').click(function () {
-                    const selectedData = table.rows('.selected').data();
-                    if (selectedData.length > 0) {
-                        const selectedRow = selectedData[0]; // Get the selected row
-                        $('#selectedRowDetails').text(
-                            `Selected Filename: ${selectedRow.filename}, Heatmap Filename: ${selectedRow.heatmap_filename}`
-                        );
+                if (selectedGroup) {
+                    // Fetch slides for the selected group
+                    $.ajax({
+                        url: 'https://neo-yin.com/get_slides',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ group: selectedGroup }),
+                        success: function (slides) {
+                            slides.forEach(slide => {
+                                slideSelect.append(new Option(slide.display_name, slide.display_name));
+                            });
+                            slideSelect.prop('disabled', false);
+                            $('#selectSlideBtn').prop('disabled', true);
+                        }
+                    });
+                } else {
+                    slideSelect.prop('disabled', true);
+                    $('#selectSlideBtn').prop('disabled', true);
+                }
+            });
 
-                        // Optionally send to server
-                        $.ajax({
-                            url: 'https://neo-yin.com/select_slide',
-                            method: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify(selectedRow),
-                            success: function (response) {
-                                console.log(response.message);
-                            },
-                            error: function (xhr, status, error) {
-                                console.error(`Error: ${error}`);
-                            }
-                        });
-                    } else {
-                        alert('No row selected!');
-                    }
-                });
+            // Handle slide selection
+            $('#slideSelect').change(function () {
+                $('#selectSlideBtn').prop('disabled', !$(this).val());
+            });
+
+            // Handle select slide button click
+            $('#selectSlideBtn').click(function () {
+                const selectedSlide = $('#slideSelect').val();
+                if (selectedSlide) {
+                    $.ajax({
+                        url: 'https://neo-yin.com/select_slide',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ display_name: selectedSlide }),
+                        success: function (response) {
+                            $('#selectedSlideDetails').text(
+                                `Selected Slide: ${response.case_name}, Benign Probability: ${response.benign_prob}, Malignant Probability: ${response.malignant_prob}`
+                            );
+                        },
+                        error: function (xhr, status, error) {
+                            console.error(`Error: ${error}`);
+                        }
+                    });
+                }
             });
         });
     </script>

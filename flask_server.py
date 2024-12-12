@@ -235,6 +235,7 @@ def select_slide():
                     "malignant_prob",
                     "non_diagnosis_prob",
                     "pred",
+                    "pseudo_idx"
                 ]
             ]
             .iloc[0]
