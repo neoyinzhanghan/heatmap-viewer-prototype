@@ -234,6 +234,7 @@ def select_slide():
                     "case_name",
                     "malignant_prob",
                     "non_diagnosis_prob",
+                    "low_grade_prob",
                     "pred",
                     "pseudo_idx",
                 ]
