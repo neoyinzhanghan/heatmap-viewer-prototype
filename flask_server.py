@@ -235,7 +235,35 @@ def select_slide():
                     "malignant_prob",
                     "non_diagnosis_prob",
                     "pred",
-                    "pseudo_idx"
+                    "pseudo_idx",
+                ]
+            ]
+            .iloc[0]
+            .to_dict()
+        )
+        return jsonify(selected_data)
+    else:
+        return jsonify({"error": "Slide not found"}), 404
+
+
+@app.route("/select_slide_from_pseudo_idx", methods=["POST"])
+def select_slide():
+    selected_pseudo_idx = request.json.get("pseudo_idx")
+    # Filter the row based on the selected display_name
+    row = metadata[metadata["pseudo_idx"] == selected_pseudo_idx]
+
+    if not row.empty:
+        # Include only the required columns
+        selected_data = (
+            row[
+                [
+                    "benign_prob",
+                    "case_name",
+                    "malignant_prob",
+                    "non_diagnosis_prob",
+                    "low_grade_prob",
+                    "pred",
+                    "pseudo_idx",
                 ]
             ]
             .iloc[0]
