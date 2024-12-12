@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WSI Metadata Viewer</title>
-    <!-- Include DataTables CSS and JS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <style>
+        .selected {
+            background-color: #d1e7dd !important;
+        }
+    </style>
 </head>
-
 <body>
     <h1>WSI Metadata Viewer</h1>
     <table id="metadataTable" class="display">
@@ -38,7 +40,7 @@
     <script>
         $(document).ready(function () {
             // Fetch metadata and populate the table
-            $.getJSON('/get_metadata', function (data) {
+            $.getJSON('https://neo-yin.com/get_metadata', function (data) {
                 const table = $('#metadataTable').DataTable({
                     data: data,
                     columns: [
@@ -57,28 +59,32 @@
                     ]
                 });
 
-                // Handle row selection
+                // Allow only one row to be highlighted at a time
                 $('#metadataTable tbody').on('click', 'tr', function () {
-                    $(this).toggleClass('selected');
+                    $('#metadataTable tr.selected').removeClass('selected'); // Remove previous selection
+                    $(this).addClass('selected'); // Highlight the new row
                 });
 
                 // Handle row selection button click
                 $('#selectRowBtn').click(function () {
                     const selectedData = table.rows('.selected').data();
                     if (selectedData.length > 0) {
-                        const selectedRow = selectedData[0]; // Get the first selected row
+                        const selectedRow = selectedData[0]; // Get the selected row
                         $('#selectedRowDetails').text(
                             `Selected Filename: ${selectedRow.filename}, Heatmap Filename: ${selectedRow.heatmap_filename}`
                         );
 
                         // Optionally send to server
                         $.ajax({
-                            url: '/select_slide',
+                            url: 'https://neo-yin.com/select_slide',
                             method: 'POST',
                             contentType: 'application/json',
                             data: JSON.stringify(selectedRow),
                             success: function (response) {
                                 console.log(response.message);
+                            },
+                            error: function (xhr, status, error) {
+                                console.error(`Error: ${error}`);
                             }
                         });
                     } else {
@@ -89,5 +95,4 @@
         });
     </script>
 </body>
-
 </html>

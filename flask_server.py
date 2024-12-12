@@ -192,13 +192,57 @@ def get_metadata():
     return jsonify(data)
 
 
+# @app.route("/select_slide", methods=["POST"])
+# def select_slide():
+#     """Handle the selected slide."""
+#     update_last_activity()
+#     selected_row = request.json
+#     print(f"Selected Row: {selected_row}")
+#     return jsonify({"message": "Slide selected", "selected_row": selected_row})
+
+
+@app.route("/get_groups", methods=["GET"])
+def get_groups():
+    # Ensure groups are sorted by group_order
+    sorted_metadata = metadata.sort_values(by="group_order")
+    groups = sorted_metadata["group"].dropna().unique().tolist()
+    return jsonify(groups)
+
+
+@app.route("/get_slides", methods=["POST"])
+def get_slides():
+    selected_group = request.json.get("group")
+    filtered_metadata = metadata[metadata["group"] == selected_group]
+    slides = (
+        filtered_metadata[["display_name"]].drop_duplicates().to_dict(orient="records")
+    )
+    return jsonify(slides)
+
+
 @app.route("/select_slide", methods=["POST"])
 def select_slide():
-    """Handle the selected slide."""
-    update_last_activity()
-    selected_row = request.json
-    print(f"Selected Row: {selected_row}")
-    return jsonify({"message": "Slide selected", "selected_row": selected_row})
+    selected_display_name = request.json.get("display_name")
+    # Filter the row based on the selected display_name
+    row = metadata[metadata["display_name"] == selected_display_name]
+
+    if not row.empty:
+        # Include only the required columns
+        selected_data = (
+            row[
+                [
+                    "benign_prob",
+                    "case_name",
+                    "malignant_prob",
+                    "non_diagnosis_prob",
+                    "pred",
+                ]
+            ]
+            .iloc[0]
+            .to_dict()
+        )
+        return jsonify(selected_data)
+    else:
+        return jsonify({"error": "Slide not found"}), 404
 
 
 if __name__ == "__main__":
